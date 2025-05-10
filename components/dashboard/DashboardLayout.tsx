@@ -1,0 +1,204 @@
+"use client";
+
+import React, { ReactNode } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { Button } from '../ui/Button';
+import { LogoutButton } from '../ui/LogoutButton';
+
+interface SidebarItemProps {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  active?: boolean;
+}
+
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, href, active = false }) => {
+  return (
+    <Link href={href}>
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${active ? 'bg-primary-500/20 text-primary-500' : 'text-gray-400 hover:bg-dark-100 hover:text-white'}`}>
+        <span className="text-lg">{icon}</span>
+        <span className="font-medium">{label}</span>
+      </div>
+    </Link>
+  );
+};
+
+interface DashboardLayoutProps {
+  children: ReactNode;
+  activeTab?: string;
+}
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab = 'portfolio' }) => {
+  const { data: session } = useSession();
+  const [isClient, setIsClient] = React.useState(false);
+  
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+  // Simple loading state for pre-hydration rendering
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+        <div className="animate-pulse space-y-4 p-6 max-w-md mx-auto">
+          <div className="h-6 bg-dark-200 rounded w-3/4"></div>
+          <div className="h-40 bg-dark-200 rounded"></div>
+          <div className="h-screen bg-dark-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-dark-300 text-white">
+      {/* Dashboard Header */}
+      <header className="bg-dark-200 border-b border-dark-100 h-16 fixed top-0 left-0 right-0 z-10">
+        <div className="h-full px-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Image 
+              src="/images/logo.png" 
+              alt="Bitcoin Logo" 
+              width={32} 
+              height={32} 
+              className="rounded-full" 
+            />
+            <span className="text-white font-bold text-xl hidden md:inline">CryptoPro</span>
+          </Link>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <button className="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </button>
+              <span className="absolute -top-1 -right-1 bg-primary-500 text-xs w-4 h-4 flex items-center justify-center rounded-full">3</span>
+            </div>
+            
+            <div className="flex items-center gap-3 border-l border-dark-100 pl-4">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-primary-500 flex items-center justify-center text-white font-bold">
+                {session?.user?.name?.charAt(0) || 'U'}
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-sm font-medium">{session?.user?.name || 'User'}</div>
+                <div className="text-xs text-gray-400">{session?.user?.email || ''}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      {/* Dashboard Content */}
+      <div className="pt-16 flex">
+        {/* Sidebar */}
+        <aside className="hidden md:block w-64 fixed h-[calc(100vh-4rem)] border-r border-dark-100 p-4 overflow-y-auto">
+          <nav className="space-y-1">
+            <SidebarItem 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>} 
+              label="Dashboard" 
+              href="/dashboard" 
+              active={activeTab === 'dashboard'} 
+            />
+            <SidebarItem 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>} 
+              label="Portfolio" 
+              href="/dashboard/portfolio" 
+              active={activeTab === 'portfolio'} 
+            />
+            <SidebarItem 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>} 
+              label="Deposit" 
+              href="/dashboard/deposit" 
+              active={activeTab === 'deposit'} 
+            />
+            <SidebarItem 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>} 
+              label="Withdraw" 
+              href="/dashboard/withdraw" 
+              active={activeTab === 'withdraw'} 
+            />
+          </nav>
+          
+          <div className="mt-8">
+            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+              Settings
+            </div>
+            <nav className="space-y-1">
+              <SidebarItem 
+                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>} 
+                label="Profile" 
+                href="/dashboard/profile" 
+                active={activeTab === 'profile'} 
+              />
+              {/* Settings link removed */}
+              <SidebarItem 
+                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>} 
+                label="Help" 
+                href="/dashboard/help" 
+                active={activeTab === 'help'} 
+              />
+            </nav>
+          </div>
+
+          {/* Admin Navigation */}
+          {session?.user?.role === 'ADMIN' && (
+            <div className="mt-8">
+              <div className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-3">
+                Admin
+              </div>
+              <nav className="space-y-1">
+                <SidebarItem 
+                  icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>} 
+                  label="Admin Dashboard" 
+                  href="/admin" 
+                  active={activeTab === 'admin'} 
+                />
+                <SidebarItem 
+                  icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>} 
+                  label="Manage Users" 
+                  href="/admin/users" 
+                  active={activeTab === 'admin-users'} 
+                />
+              </nav>
+            </div>
+          )}
+          
+          <div className="mt-auto pt-8">
+            <LogoutButton variant="outline" className="w-full justify-start" />
+          </div>
+        </aside>
+        
+        {/* Mobile Sidebar Toggle Button */}
+        <button className="md:hidden fixed bottom-4 right-4 z-20 bg-primary-500 text-white p-3 rounded-full shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        
+        {/* Main Content */}
+        <main className="flex-1 md:ml-64 px-4 py-6 md:px-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardLayout;
