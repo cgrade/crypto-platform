@@ -5,11 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/context/AuthContext';
 
 // Metadata moved to layout.tsx as this is now a client component
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signUp, loading } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -77,20 +79,11 @@ export default function RegisterPage() {
       setApiError(null);
       
       try {
-        const response = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: `${formData.firstName} ${formData.lastName}`,
-            email: formData.email,
-            password: formData.password
-          })
-        });
+        const name = `${formData.firstName} ${formData.lastName}`;
+        const result = await signUp(formData.email, formData.password, name);
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Registration failed');
+        if (!result.success) {
+          throw new Error(result.error || 'Registration failed');
         }
         
         // Registration successful

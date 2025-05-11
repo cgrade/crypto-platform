@@ -1,8 +1,8 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useEffect, useState } from "react";
+import { AuthProvider } from "@/context/AuthContext";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -17,9 +17,9 @@ export function Providers({ children }: ProvidersProps) {
   }, []);
   
   return (
-    <SessionProvider>
+    <AuthProvider>
       {children}
       {mounted && <ToastContainer />}
-    </SessionProvider>
+    </AuthProvider>
   );
 }
