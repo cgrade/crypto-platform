@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import cryptoApi from '@/lib/api/crypto';
+import cryptoApi, { Crypto } from '@/lib/api/crypto';
 import prisma from '@/lib/prisma';
 
 export default async function DashboardPage() {
@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   }
 
   // Fetch real-time crypto prices with improved error handling
-  let cryptoPrices = [];
+  let cryptoPrices: Crypto[] = [];
   try {
     cryptoPrices = await cryptoApi.getPrices(['bitcoin', 'ethereum']);
   } catch (error) {
