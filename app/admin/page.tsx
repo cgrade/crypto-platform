@@ -111,9 +111,6 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Since we don't have the real API endpoints yet, use sample data instead
-        // In a real app, uncomment the following code
-        /*
         // Fetch users
         const usersResponse = await fetch('/api/admin/users');
         const usersData = await usersResponse.json();
@@ -129,11 +126,6 @@ export default function AdminDashboard() {
         if (transactionsResponse.ok) {
           setTransactions(transactionsData.transactions);
         }
-        */
-        
-        // Use sample data instead
-        setUsers(sampleUsers);
-        setTransactions(sampleTransactions);
         
       } catch (error) {
         console.error('Error fetching admin data:', error);

@@ -7,6 +7,7 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 let prisma: PrismaClient;
 
 if (process.env.NODE_ENV === 'production') {
+  console.log('DATABASE_URL:', process.env.DATABASE_URL);
   prisma = new PrismaClient();
 } else {
   if (!globalForPrisma.prisma) {
