@@ -36,8 +36,10 @@ export const cryptoApi = {
    */
   async getPrices(coins: string[] = ['bitcoin']): Promise<CryptoResponse> {
     try {
+      // Use our server-side proxy instead of calling CoinGecko directly
+      // This avoids CORS issues and helps manage rate limiting
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coins.join(',')}&order=market_cap_desc&per_page=${coins.length}&page=1&sparkline=false&price_change_percentage=24h`
+        `/api/crypto/prices?coins=${coins.join(',')}`
       );
       
       if (!response.ok) {

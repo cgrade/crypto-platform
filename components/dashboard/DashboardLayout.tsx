@@ -1,7 +1,8 @@
 "use client";
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Button } from '../ui/Button';
@@ -32,11 +33,39 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab = 'portfolio' }) => {
   const { data: session } = useSession();
-  const [isClient, setIsClient] = React.useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
   
-  React.useEffect(() => {
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node) && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
+  
+  useEffect(() => {
     setIsClient(true);
-  }, []);
+    // Check if navigation back is possible
+    setCanGoBack(window.history.length > 1);
+    
+    // Prevent body scroll when mobile menu is open
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isMobileMenuOpen]);
   // Simple loading state for pre-hydration rendering
   if (!isClient) {
     return (
@@ -53,57 +82,81 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
   return (
     <div className="min-h-screen bg-dark-300 text-white">
       {/* Dashboard Header */}
-      <header className="bg-dark-200 border-b border-dark-100 h-16 fixed top-0 left-0 right-0 z-10">
+      <header className="bg-dark-200 border-b border-dark-100 h-16 fixed top-0 left-0 right-0 z-40 shadow-md">
         <div className="h-full px-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => window.history.back()} 
-              className="text-gray-400 hover:text-white flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span className="hidden sm:inline text-sm">Back</span>
-            </button>
+          <div className="flex flex-col items-start">
+            <div className="flex items-center gap-2">
+              {/* Hamburger menu for mobile */}
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                className="md:hidden text-gray-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+                aria-label="Toggle mobile menu">
+                {isMobileMenuOpen ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+              
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="CryptoPro Logo" 
+                  width={32} 
+                  height={32} 
+                  className="rounded-full" 
+                />
+                <span className="text-white font-bold text-lg xs:text-xl hidden xs:inline">CryptoPro</span>
+              </Link>
+            </div>
             
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <Image 
-                src="/images/logo.png" 
-                alt="Bitcoin Logo" 
-                width={32} 
-                height={32} 
-                className="rounded-full" 
-              />
-              <span className="text-white font-bold text-xl hidden md:inline">CryptoPro</span>
-            </Link>
+            {/* Back button positioned below the logo */}
+            {canGoBack && (
+              <button 
+                onClick={() => window.history.back()} 
+                className="text-gray-400 hover:text-white flex items-center gap-1 mt-1 ml-1 text-xs transition-colors duration-200"
+                aria-label="Go back">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span className="text-xs">Back</span>
+              </button>
+            )}
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <button className="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button className="text-gray-400 hover:text-white transition-colors duration-200 p-1.5 rounded-md hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50" aria-label="Notifications">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </button>
               <span className="absolute -top-1 -right-1 bg-primary-500 text-xs w-4 h-4 flex items-center justify-center rounded-full">3</span>
             </div>
             
-            <div className="flex items-center gap-3 border-l border-dark-100 pl-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-primary-500 flex items-center justify-center text-white font-bold">
+            <Link href="/dashboard/profile" className="flex items-center gap-2 border-l border-dark-100 pl-3 py-1.5 px-2 rounded-md hover:bg-dark-100 transition-colors duration-200" aria-label="Profile settings">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-primary-500 flex items-center justify-center text-white font-bold shadow-sm">
                 {session?.user?.name?.charAt(0) || 'U'}
               </div>
-              <div className="hidden sm:block">
-                <div className="text-sm font-medium">{session?.user?.name || 'User'}</div>
-                <div className="text-xs text-gray-400">{session?.user?.email || ''}</div>
+              <div className="hidden xs:block max-w-[120px] sm:max-w-none">
+                <div className="text-sm font-medium truncate">{session?.user?.name || 'User'}</div>
+                <div className="text-xs text-gray-400 truncate">{session?.user?.email || ''}</div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </header>
       
       {/* Dashboard Content */}
-      <div className="pt-16 flex">
-        {/* Sidebar */}
-        <aside className="hidden md:block w-64 fixed h-[calc(100vh-4rem)] border-r border-dark-100 p-4 overflow-y-auto">
+      <div className="pt-16 flex relative">
+        {/* Sidebar - Desktop (md+) and Mobile (when open) */}
+        <aside 
+          ref={sidebarRef}
+          className={`transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} md:block w-72 sm:w-64 fixed h-[calc(100vh-4rem)] border-r border-dark-100 p-5 md:p-4 overflow-y-auto bg-dark-200 md:bg-transparent z-30 shadow-lg md:shadow-none`}>
           <nav className="space-y-1">
             <SidebarItem 
               icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -222,15 +275,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
           </div>
         </aside>
         
-        {/* Mobile Sidebar Toggle Button */}
-        <button className="md:hidden fixed bottom-4 right-4 z-20 bg-primary-500 text-white p-3 rounded-full shadow-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        {/* Mobile Sidebar Overlay */}
+        <div 
+          className={`fixed inset-0 bg-black transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-50 z-20' : 'opacity-0 -z-10'} md:hidden`} 
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
         
         {/* Main Content */}
-        <main className="flex-1 md:ml-64 px-4 py-6 md:px-8">
+        <main className="flex-1 md:ml-64 px-4 py-6 md:px-8 min-h-[calc(100vh-4rem)]">
           {children}
         </main>
       </div>

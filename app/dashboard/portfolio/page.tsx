@@ -7,6 +7,7 @@ import cryptoApi, { Crypto, ApiError } from '@/lib/api/crypto';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import BitcoinChart from '@/components/dashboard/BitcoinChart';
 
 // Using the Crypto type from our API client
@@ -348,32 +349,57 @@ export default function PortfolioPage() {
           <p className="text-gray-400">Manage your crypto assets</p>
         </div>
         <div className="flex space-x-4">
-          <Button onClick={() => {
-            setIsDepositModalOpen(true);
-            setApiResponse({});
-            setFormErrors({});
-          }}>
-            Deposit
-          </Button>
-          <Button variant="outline" onClick={() => {
-            setIsWithdrawModalOpen(true);
-            setApiResponse({});
-            setFormErrors({});
-          }}>
-            Withdraw
-          </Button>
+          <div className="flex gap-2 max-w-xs mx-auto sm:max-w-none sm:mx-0">
+            <Button 
+              onClick={() => {
+                setIsDepositModalOpen(true);
+                setApiResponse({});
+                setFormErrors({});
+              }}
+              className="flex-1 px-6"
+            >
+              <span className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Deposit
+              </span>
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsWithdrawModalOpen(true);
+                setApiResponse({});
+                setFormErrors({});
+              }}
+              className="flex-1 px-6"
+            >
+              <span className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Withdraw
+              </span>
+            </Button>
+          </div>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        <div className="md:col-span-8">
-          <BitcoinChart />
-        </div>
-        
-        <div className="md:col-span-4 grid grid-cols-1 gap-6">
-          <div className="bg-dark-200 p-6 rounded-xl">
-            <div className="text-sm text-gray-400 mb-1">Total Portfolio Value</div>
-            <div className="text-2xl font-bold">
+      {/* Portfolio Summary Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6">
+        {/* Stats Cards - Mobile friendly grid for smaller screens */}
+        <div className="lg:order-2 lg:col-span-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+          {/* Portfolio Value Card */}
+          <div className="bg-dark-200 p-5 rounded-xl border border-dark-100 hover:border-primary-500/20 transition-colors duration-200 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-sm text-gray-400">Total Portfolio Value</div>
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-primary-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-2xl font-bold tracking-tight">
               {isLoadingPrices ? (
                 <div className="animate-pulse h-8 w-32 bg-dark-100 rounded"></div>
               ) : (
@@ -382,45 +408,79 @@ export default function PortfolioPage() {
             </div>
           </div>
           
-          <div className="bg-dark-200 p-6 rounded-xl">
-            <div className="text-sm text-gray-400 mb-1">Assets</div>
-            <div className="text-2xl font-bold">{portfolioDisplay.length}</div>
-            <div className="mt-2 text-sm text-gray-400">
-              {isLoadingPrices ? (
-                <div className="animate-pulse h-4 w-24 bg-dark-100 rounded"></div>
-              ) : (
-                <span className={cryptoData && (cryptoData[0].price_change_percentage_24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
-                  {cryptoData && cryptoData[0].price_change_percentage_24h
-                    ? `${cryptoData[0].price_change_percentage_24h > 0 ? '+' : ''}${cryptoData[0].price_change_percentage_24h.toFixed(2)}% today` 
-                    : '0.00% today'
-                  }
-                </span>
-              )}
+          {/* Assets Count Card */}
+          <div className="bg-dark-200 p-5 rounded-xl border border-dark-100 hover:border-primary-500/20 transition-colors duration-200 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-sm text-gray-400">Assets</div>
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold tracking-tight">{portfolioDisplay.length}</span>
+              <div className="mt-2 text-sm">
+                {isLoadingPrices ? (
+                  <div className="animate-pulse h-4 w-24 bg-dark-100 rounded"></div>
+                ) : (
+                  <span className={cryptoData && (cryptoData[0].price_change_percentage_24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
+                    {cryptoData && cryptoData[0].price_change_percentage_24h
+                      ? `${cryptoData[0].price_change_percentage_24h > 0 ? '+' : ''}${cryptoData[0].price_change_percentage_24h.toFixed(2)}% today` 
+                      : '0.00% today'
+                    }
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                setIsDepositModalOpen(true);
-                setApiResponse({});
-                setFormErrors({});
-              }}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              Deposit
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsWithdrawModalOpen(true);
-                setApiResponse({});
-                setFormErrors({});
-              }}
-              className="flex-1 border-red-600 text-red-500 hover:bg-red-900/20"
-            >
-              Withdraw
-            </Button>
+          {/* Action Buttons */}
+          <div className="bg-dark-200 p-5 sm:col-span-2 lg:col-span-1 rounded-xl border border-dark-100 hover:border-primary-500/20 transition-colors duration-200 shadow-sm">
+            <h3 className="text-sm text-gray-400 mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setIsDepositModalOpen(true);
+                  setApiResponse({});
+                  setFormErrors({});
+                }}
+                className="bg-green-600 hover:bg-green-700 transition-colors duration-200"
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>Deposit</span>
+                </span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setIsWithdrawModalOpen(true);
+                  setApiResponse({});
+                  setFormErrors({});
+                }}
+                className="border-red-600 text-red-500 hover:bg-red-900/20 transition-colors duration-200"
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-6 0v-1m6 0H7" />
+                  </svg>
+                  <span>Withdraw</span>
+                </span>
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Chart - Full width on mobile, 2/3 on desktop */}
+        <div className="lg:order-1 lg:col-span-8 bg-dark-200 p-4 rounded-xl border border-dark-100 hover:border-primary-500/20 transition-colors duration-200 shadow-sm overflow-hidden">
+          <h3 className="text-sm text-gray-400 mb-3 px-2">Bitcoin Price Chart</h3>
+          <div className="h-[300px] xs:h-[320px] md:h-[360px]">
+            <BitcoinChart />
           </div>
         </div>
       </div>
@@ -430,7 +490,8 @@ export default function PortfolioPage() {
           <h2 className="text-lg font-semibold">Your Assets</h2>
         </div>
         
-        <div className="overflow-x-auto">
+        {/* Desktop view - Table (hidden on mobile) */}
+        <div className="hidden md:block">
           <table className="w-full table-auto">
             <thead>
               <tr className="bg-dark-100">
@@ -496,12 +557,12 @@ export default function PortfolioPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
-                        <button className="px-2 py-1 text-xs font-medium text-green-500 hover:text-green-400 border border-green-500 hover:border-green-400 rounded">
+                        <Link href="/dashboard/deposit" className="px-2 py-1 text-xs font-medium text-green-500 hover:text-green-400 border border-green-500 hover:border-green-400 rounded transition-colors duration-200 inline-block">
                           Buy
-                        </button>
-                        <button className="px-2 py-1 text-xs font-medium text-red-500 hover:text-red-400 border border-red-500 hover:border-red-400 rounded">
+                        </Link>
+                        <Link href="/dashboard/withdraw" className="px-2 py-1 text-xs font-medium text-red-500 hover:text-red-400 border border-red-500 hover:border-red-400 rounded transition-colors duration-200 inline-block">
                           Sell
-                        </button>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -509,6 +570,74 @@ export default function PortfolioPage() {
               )}
             </tbody>
           </table>
+        </div>
+        
+        {/* Mobile view - Card layout (shown only on mobile) */}
+        <div className="md:hidden">
+          {isLoadingPrices ? (
+            <div className="p-4 space-y-4">
+              {Array(2).fill(0).map((_, index) => (
+                <div key={index} className="p-4 bg-dark-100/50 rounded-lg animate-pulse">
+                  <div className="h-6 w-3/4 bg-dark-100 rounded mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-1/2 bg-dark-100 rounded"></div>
+                    <div className="h-4 w-2/3 bg-dark-100 rounded"></div>
+                    <div className="h-4 w-1/3 bg-dark-100 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 space-y-4">
+              {portfolioDisplay.map(asset => (
+                <div key={asset.id} className="p-4 bg-dark-100/50 rounded-lg border border-dark-100 hover:border-primary-500/30 transition-colors duration-200">
+                  {/* Asset Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full bg-yellow-500 flex items-center justify-center text-white font-bold shadow-md">
+                        ₿
+                      </div>
+                      <div className="ml-3">
+                        <div className="font-medium">Bitcoin</div>
+                        <div className="text-sm text-gray-400">{asset.asset}</div>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${asset.change24h >= 0 ? 'bg-green-900/30 text-green-500' : 'bg-red-900/30 text-red-500'}`}>
+                      {asset.change24h > 0 ? '+' : ''}{asset.change24h.toFixed(2)}%
+                    </span>
+                  </div>
+                  
+                  {/* Asset Details */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">Balance:</span>
+                      <span className="font-medium">
+                        {asset.balance.toLocaleString(undefined, { minimumFractionDigits: asset.asset === 'BTC' ? 8 : 2, maximumFractionDigits: asset.asset === 'BTC' ? 8 : 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">Price:</span>
+                      <span>${cryptoApi.formatCurrency(asset.price)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">Value:</span>
+                      <span className="font-medium">${cryptoApi.formatCurrency(asset.value)}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex space-x-2 pt-2 border-t border-dark-100">
+                    <Link href="/dashboard/deposit" className="flex-1 py-2 text-sm font-medium text-green-500 hover:text-green-400 bg-green-900/10 hover:bg-green-900/20 rounded-md transition-colors duration-200 flex items-center justify-center">
+                      Buy
+                    </Link>
+                    <Link href="/dashboard/withdraw" className="flex-1 py-2 text-sm font-medium text-red-500 hover:text-red-400 bg-red-900/10 hover:bg-red-900/20 rounded-md transition-colors duration-200 flex items-center justify-center">
+                      Sell
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
