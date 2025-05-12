@@ -1,5 +1,7 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import supabase from '../lib/supabase-direct';
+
+// Using the direct Supabase client for consistent API key handling
 
 const AuthContext = createContext();
 

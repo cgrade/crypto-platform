@@ -2,7 +2,8 @@
 
 import { ToastContainer } from "@/components/ui/Toast";
 import { useEffect, useState } from "react";
-import { AuthProvider } from "@/context/AuthContext";
+import { SessionProvider } from "next-auth/react";
+import { NextAuthProvider } from "@/context/NextAuthContext";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -17,9 +18,11 @@ export function Providers({ children }: ProvidersProps) {
   }, []);
   
   return (
-    <AuthProvider>
-      {children}
-      {mounted && <ToastContainer />}
-    </AuthProvider>
+    <SessionProvider>
+      <NextAuthProvider>
+        {children}
+        {mounted && <ToastContainer />}
+      </NextAuthProvider>
+    </SessionProvider>
   );
 }

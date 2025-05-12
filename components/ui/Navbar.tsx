@@ -1,13 +1,20 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import { Button } from './Button';
+import { LogoutButton } from './LogoutButton';
 
 interface NavbarProps {
   transparent?: boolean;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === 'authenticated';
+  
   return (
     <header className={`w-full py-4 ${transparent ? 'absolute top-0 left-0 z-10' : 'bg-dark-200 border-b border-dark-100'}`}>
       <div className="container mx-auto px-4 md:px-6">
@@ -38,16 +45,29 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           </nav>
           
           <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost" size="default">
-                Login
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="default">
-                Get Started
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="default">
+                    Dashboard
+                  </Button>
+                </Link>
+                <LogoutButton />
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="default">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="default">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

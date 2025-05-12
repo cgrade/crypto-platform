@@ -3,6 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
+import { format } from 'date-fns';
+
+type Transaction = {
+  id: string;
+  amount: number;
+  type: string;
+  status: string;
+  cryptoType: string;
+  cryptoAddress: string;
+  createdAt: string;
+  updatedAt: string;
+  txHash?: string;
+};
 
 export default function WithdrawPage() {
   const { data: session } = useSession();
@@ -17,10 +30,13 @@ export default function WithdrawPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   
-  // Simulate fetching the user's balances from the API
   const [balances, setBalances] = useState({
-    BTC: { available: 0.05, frozen: 0.01 }
+    BTC: { available: 0, frozen: 0 }
   });
+  
+  const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
+  const [completedTransactions, setCompletedTransactions] = useState<Transaction[]>([]);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   
   const supportedCryptos = [
     { 
@@ -35,11 +51,52 @@ export default function WithdrawPage() {
   ];
 
   useEffect(() => {
-    // In a real app, you'd fetch user balances here
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    const fetchUserData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch user portfolio/balances
+        const portfolioResponse = await fetch('/api/user/portfolio');
+        if (portfolioResponse.ok) {
+          const portfolioData = await portfolioResponse.json();
+          
+          // Update balances with actual values from API
+          const btcAsset = portfolioData.portfolio.assets.find((asset: any) => asset.symbol === 'BTC');
+          if (btcAsset) {
+            setBalances({
+              BTC: {
+                available: btcAsset.amount,
+                frozen: btcAsset.frozen || 0
+              }
+            });
+          }
+        }
+
+        // Fetch user's withdrawal transactions
+        const transactionsResponse = await fetch('/api/user/transactions?type=WITHDRAWAL');
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json();
+          
+          // Filter transactions by status
+          setPendingTransactions(transactionsData.transactions.filter(
+            (tx: Transaction) => tx.status === 'PENDING'
+          ));
+          
+          setCompletedTransactions(transactionsData.transactions.filter(
+            (tx: Transaction) => tx.status === 'COMPLETED'
+          ));
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setErrorMessage('Failed to load your withdrawal information');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (session?.user) {
+      fetchUserData();
+    }
+  }, [session]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -124,11 +181,28 @@ export default function WithdrawPage() {
       setSuccessMessage('');
       
       try {
-        // In a real app, you would call your API here
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network request
+        const response = await fetch('/api/transactions/withdraw', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: Number(formData.amount),
+            cryptoType: formData.cryptoType,
+            cryptoAddress: formData.withdrawalAddress
+          }),
+        });
         
-        // Simulate successful withdrawal request
-        setSuccessMessage(`Your withdrawal request for ${formData.amount} ${formData.cryptoType} has been submitted for processing. Please allow 30-60 minutes for the transaction to be confirmed on the blockchain.`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to submit withdrawal request');
+        }
+        
+        // Add the new transaction to pending list
+        setPendingTransactions(prev => [data.transaction, ...prev]);
+        
+        setSuccessMessage(`Your withdrawal request for ${formData.amount} ${formData.cryptoType} has been submitted for approval. Please allow 1-2 hours for processing during business hours.`);
         
         // Reset form
         setFormData({
@@ -137,19 +211,21 @@ export default function WithdrawPage() {
           withdrawalAddress: ''
         });
         
-        // Update simulated balances
+        // Update local balances to reflect the pending withdrawal
+        // This will be refreshed when the user reloads the page
         const amount = parseFloat(formData.amount);
         const crypto = formData.cryptoType as keyof typeof balances;
         setBalances(prev => ({
           ...prev,
           [crypto]: {
             ...prev[crypto],
-            available: prev[crypto].available - amount
+            available: prev[crypto].available - amount,
+            frozen: prev[crypto].frozen + amount
           }
         }));
         
       } catch (error) {
-        setErrorMessage('An error occurred while processing your withdrawal. Please try again.');
+        setErrorMessage(error instanceof Error ? error.message : 'An error occurred while processing your withdrawal');
         console.error(error);
       } finally {
         setIsSubmitting(false);
@@ -166,23 +242,22 @@ export default function WithdrawPage() {
         </div>
       </div>
 
+      {/* Success/error messages */}
+      {successMessage && (
+        <div className="p-4 bg-green-900/30 border border-green-800 rounded-lg">
+          <p className="text-green-400">{successMessage}</p>
+        </div>
+      )}
+      
+      {errorMessage && (
+        <div className="p-4 bg-red-900/30 border border-red-800 rounded-lg">
+          <p className="text-red-400">{errorMessage}</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 bg-dark-200 rounded-xl p-6">
           <h2 className="text-xl font-semibold mb-6">Select Cryptocurrency</h2>
-          
-          {/* Success message */}
-          {successMessage && (
-            <div className="mb-6 p-4 bg-green-900/30 border border-green-800 rounded-lg">
-              <p className="text-green-400">{successMessage}</p>
-            </div>
-          )}
-          
-          {/* Error message */}
-          {errorMessage && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-800 rounded-lg">
-              <p className="text-red-400">{errorMessage}</p>
-            </div>
-          )}
           
           <div className="grid grid-cols-2 gap-4 mb-8">
             {supportedCryptos.map(crypto => (
@@ -302,7 +377,7 @@ export default function WithdrawPage() {
                 <h4 className="font-medium text-amber-400 mb-2">Withdrawal Security Notice</h4>
                 <ul className="list-disc list-inside text-sm space-y-2 text-gray-300">
                   <li>All withdrawal requests are manually reviewed for security purposes.</li>
-                  <li>Withdrawals are usually processed within 30-60 minutes during business hours.</li>
+                  <li>Withdrawals are usually processed within 1-2 hours during business hours.</li>
                   <li>Always double-check your withdrawal address before confirming.</li>
                   <li>We highly recommend using whitelisted addresses.</li>
                 </ul>
@@ -335,7 +410,7 @@ export default function WithdrawPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium mb-1">Processing Time</h3>
-                <p className="text-sm text-gray-400">Withdrawals are processed within 30-60 minutes during business hours. During peak times or weekends, it may take longer.</p>
+                <p className="text-sm text-gray-400">Withdrawals are processed within 1-2 hours during business hours. During peak times or weekends, it may take longer.</p>
               </div>
               
               <div>
@@ -366,6 +441,93 @@ export default function WithdrawPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Transaction history */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Withdrawal History</h2>
+          <button
+            onClick={() => setShowTransactionHistory(!showTransactionHistory)}
+            className="text-primary-400 text-sm hover:text-primary-300"
+          >
+            {showTransactionHistory ? 'Hide' : 'Show'} History
+          </button>
+        </div>
+        
+        {showTransactionHistory && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-3 space-y-6">
+              {/* Pending transactions */}
+              {pendingTransactions.length > 0 && (
+                <div className="bg-dark-200 rounded-xl overflow-hidden">
+                  <div className="px-6 py-4 bg-amber-900/20 border-b border-amber-800/50">
+                    <h4 className="font-medium text-amber-400">Pending Withdrawals</h4>
+                  </div>
+                  <div className="divide-y divide-dark-300">
+                    {pendingTransactions.map(tx => (
+                      <div key={tx.id} className="px-6 py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                        <div>
+                          <div className="font-medium">{tx.amount} {tx.cryptoType}</div>
+                          <div className="text-xs text-gray-400">{format(new Date(tx.createdAt), 'MMM d, yyyy HH:mm')}</div>
+                        </div>
+                        <div className="text-sm truncate max-w-xs">
+                          <span className="text-gray-400">To: </span>
+                          <span className="font-mono">{tx.cryptoAddress}</span>
+                        </div>
+                        <span className="px-2 py-1 text-xs rounded-full bg-yellow-900/30 text-yellow-400 border border-yellow-800 self-start md:self-center">
+                          PENDING
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Completed transactions */}
+              {completedTransactions.length > 0 ? (
+                <div className="bg-dark-200 rounded-xl overflow-hidden">
+                  <div className="px-6 py-4 bg-green-900/20 border-b border-green-800/50">
+                    <h4 className="font-medium text-green-400">Completed Withdrawals</h4>
+                  </div>
+                  <div className="divide-y divide-dark-300 max-h-[400px] overflow-y-auto">
+                    {completedTransactions.map(tx => (
+                      <div key={tx.id} className="px-6 py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                        <div>
+                          <div className="font-medium">{tx.amount} {tx.cryptoType}</div>
+                          <div className="text-xs text-gray-400">{format(new Date(tx.updatedAt), 'MMM d, yyyy HH:mm')}</div>
+                        </div>
+                        <div className="text-sm truncate max-w-xs">
+                          <span className="text-gray-400">To: </span>
+                          <span className="font-mono">{tx.cryptoAddress}</span>
+                        </div>
+                        <div>
+                          <span className="px-2 py-1 text-xs rounded-full bg-green-900/30 text-green-400 border border-green-800 block mb-1">
+                            COMPLETED
+                          </span>
+                          {tx.txHash && (
+                            <a 
+                              href={`https://www.blockchain.com/explorer/transactions/btc/${tx.txHash}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary-400 hover:text-primary-300"
+                            >
+                              View Transaction →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-400 bg-dark-200 rounded-xl">
+                  No completed withdrawals yet
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

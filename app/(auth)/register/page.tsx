@@ -5,13 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/context/AuthContext';
+import { useNextAuth } from '@/context/NextAuthContext';
 
 // Metadata moved to layout.tsx as this is now a client component
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signUp, loading } = useAuth();
+  const { signUp, loading } = useNextAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',

@@ -55,16 +55,27 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
       {/* Dashboard Header */}
       <header className="bg-dark-200 border-b border-dark-100 h-16 fixed top-0 left-0 right-0 z-10">
         <div className="h-full px-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image 
-              src="/images/logo.png" 
-              alt="Bitcoin Logo" 
-              width={32} 
-              height={32} 
-              className="rounded-full" 
-            />
-            <span className="text-white font-bold text-xl hidden md:inline">CryptoPro</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => window.history.back()} 
+              className="text-gray-400 hover:text-white flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span className="hidden sm:inline text-sm">Back</span>
+            </button>
+            
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image 
+                src="/images/logo.png" 
+                alt="Bitcoin Logo" 
+                width={32} 
+                height={32} 
+                className="rounded-full" 
+              />
+              <span className="text-white font-bold text-xl hidden md:inline">CryptoPro</span>
+            </Link>
+          </div>
           
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -141,7 +152,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
                 href="/dashboard/profile" 
                 active={activeTab === 'profile'} 
               />
-              {/* Settings link removed */}
               <SidebarItem 
                 icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -151,6 +161,33 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
                 active={activeTab === 'help'} 
               />
             </nav>
+            
+            {/* Admin section */}
+            {session?.user?.role === 'ADMIN' && (
+              <div className="mt-8">
+                <div className="text-xs font-semibold uppercase tracking-wider text-primary-500 mb-3">
+                  Admin Area
+                </div>
+                <nav className="space-y-1">
+                  <SidebarItem 
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>} 
+                    label="Users" 
+                    href="/admin/users" 
+                    active={activeTab === 'admin-users'} 
+                  />
+                  <SidebarItem 
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>} 
+                    label="Transactions" 
+                    href="/admin/transactions" 
+                    active={activeTab === 'admin-transactions'} 
+                  />
+                </nav>
+              </div>
+            )}
           </div>
 
           {/* Admin Navigation */}

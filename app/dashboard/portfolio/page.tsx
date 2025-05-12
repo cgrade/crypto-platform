@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import cryptoApi, { Crypto, ApiError } from '@/lib/api/crypto';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -11,6 +12,9 @@ import BitcoinChart from '@/components/dashboard/BitcoinChart';
 // Using the Crypto type from our API client
 
 export default function PortfolioPage() {
+  // Authenticate with NextAuth
+  const { data: session } = useSession();
+  
   // Track client-side rendering to prevent hydration errors
   const [isClient, setIsClient] = useState(false);
   
@@ -39,10 +43,43 @@ export default function PortfolioPage() {
   }>({ BTC: 0 });
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   
-  // Sample portfolio data
-  const [portfolio, setPortfolio] = useState([
-    { id: 1, asset: 'BTC', balance: 0.78, price: 45000, value: 35100, change24h: 2.5 }
+  // User portfolio data
+  const [userPortfolio, setUserPortfolio] = useState({
+    id: '',
+    totalValue: 0,
+    assets: []
+  });
+  
+  // Formatted portfolio data for display
+  const [portfolioDisplay, setPortfolioDisplay] = useState([
+    { id: 1, asset: 'BTC', balance: 0, price: 0, value: 0, change24h: 0 }
   ]);
+  
+  // Fetch user portfolio data from backend
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      try {
+        const response = await fetch('/api/user/portfolio');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Portfolio data from API:', data);
+          
+          if (data.success && data.portfolio) {
+            setUserPortfolio(data.portfolio);
+          }
+        } else {
+          console.error('Failed to fetch portfolio data');
+        }
+      } catch (error) {
+        console.error('Error fetching portfolio:', error);
+      }
+    };
+    
+    // Only fetch if the session exists (user is authenticated)
+    if (session) {
+      fetchPortfolio();
+    }
+  }, [session]);
   
   // Define the SWR fetcher function using our type-safe API client
   const fetcher = async (url: string) => {
@@ -71,41 +108,68 @@ export default function PortfolioPage() {
       revalidateOnFocus: true,
       dedupingInterval: 10000, // Dedupe requests within 10 seconds
       errorRetryCount: 3,
-      onSuccess: (data) => {
-        // Update crypto prices
-        setCryptoPrices({
-          BTC: data[0].current_price
-        });
-        
-        // Update portfolio with latest prices
-        setPortfolio(prev => prev.map(asset => {
-          if (asset.asset === 'BTC') {
-            return {
-              ...asset,
-              price: data[0].current_price,
-              value: asset.balance * data[0].current_price,
-              change24h: data[0].price_change_percentage_24h || 0 // Default to 0 if null
-            };
-          }
-          return asset;
-        }));
-        
-        setIsLoadingPrices(false);
-      }
+      onSuccess: () => {}
     }
   );
   
-  // Set loading state based on SWR
   useEffect(() => {
-    if (cryptoData) {
+    if (userPortfolio.assets?.length > 0) {
+      // Get the BTC price - prefer the API price, fall back to the price from our backend API
+      const btcPriceFromApi = cryptoData ? cryptoData[0]?.current_price : 0;
+      const btcPriceFromBackend = (userPortfolio as any).btcPrice || 0;
+      const btcPrice = btcPriceFromApi || btcPriceFromBackend;
+      
+      // Update crypto prices state for other components to use
+      setCryptoPrices({
+        BTC: btcPrice
+      });
+      
+      // Format portfolio data for display
+      const displayData = userPortfolio.assets.map(asset => {
+        // Get price from various sources in order of preference
+        let currentPrice = 0;
+        if (asset.symbol === 'BTC') {
+          // 1. Use price from CoinGecko API if available
+          if (btcPriceFromApi) {
+            currentPrice = btcPriceFromApi;
+          }
+          // 2. Use currentPrice from our backend API if available  
+          else if ((asset as any).currentPrice) {
+            currentPrice = (asset as any).currentPrice;
+          }
+          // 3. Use the price from our backend
+          else if (btcPriceFromBackend) {
+            currentPrice = btcPriceFromBackend;
+          }
+        }
+        
+        // Calculate asset value based on amount and price
+        const assetValue = asset.amount * currentPrice;
+        
+        return {
+          id: asset.id,
+          asset: asset.symbol,
+          balance: asset.amount,
+          price: currentPrice,
+          value: assetValue,
+          change24h: asset.symbol === 'BTC' && cryptoData ? (cryptoData[0]?.price_change_percentage_24h || 0) : 0
+        };
+      });
+      
+      // Update the portfolio display state
+      setPortfolioDisplay(displayData);
       setIsLoadingPrices(false);
+      
+      console.log('Updated portfolio display:', displayData);
     } else if (cryptoError) {
       console.error('Error fetching crypto prices:', cryptoError);
       setIsLoadingPrices(false);
-    } else {
+    } else if (!userPortfolio.assets?.length && !cryptoError) {
       setIsLoadingPrices(true);
     }
-  }, [cryptoData, cryptoError]);
+  }, [cryptoData, cryptoError, userPortfolio]);
+  
+  // This useEffect was duplicating functionality - removed
   
   const handleDepositChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -153,7 +217,7 @@ export default function PortfolioPage() {
       errors.amount = 'Please enter a valid positive number';
     } else {
       // Check if user has enough balance
-      const asset = portfolio.find(item => item.asset === withdrawForm.cryptoType);
+      const asset = portfolioDisplay.find(item => item.asset === withdrawForm.cryptoType);
       if (asset && Number(withdrawForm.amount) > asset.balance) {
         errors.amount = `Insufficient ${withdrawForm.cryptoType} balance`;
       }
@@ -237,7 +301,7 @@ export default function PortfolioPage() {
         });
         
         // Update simulated portfolio balances
-        setPortfolio(prev => prev.map(asset => {
+        setPortfolioDisplay(prev => prev.map(asset => {
           if (asset.asset === withdrawForm.cryptoType) {
             const newBalance = asset.balance - Number(withdrawForm.amount);
             return {
@@ -261,7 +325,7 @@ export default function PortfolioPage() {
   };
   
   // Calculate total portfolio value
-  const totalPortfolioValue = portfolio.reduce((sum, asset) => sum + asset.value, 0);
+  const totalPortfolioValue = portfolioDisplay.reduce((sum, asset) => sum + asset.value, 0);
   
   // Return simplified UI during pre-hydration to prevent errors
   if (!isClient) {
@@ -320,7 +384,7 @@ export default function PortfolioPage() {
           
           <div className="bg-dark-200 p-6 rounded-xl">
             <div className="text-sm text-gray-400 mb-1">Assets</div>
-            <div className="text-2xl font-bold">{portfolio.length}</div>
+            <div className="text-2xl font-bold">{portfolioDisplay.length}</div>
             <div className="mt-2 text-sm text-gray-400">
               {isLoadingPrices ? (
                 <div className="animate-pulse h-4 w-24 bg-dark-100 rounded"></div>
@@ -403,7 +467,7 @@ export default function PortfolioPage() {
                   </tr>
                 ))
               ) : (
-                portfolio.map(asset => (
+                portfolioDisplay.map(asset => (
                   <tr key={asset.id} className="hover:bg-dark-100/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center">

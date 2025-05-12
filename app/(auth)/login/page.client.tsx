@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,7 +13,6 @@ export default function LoginPage() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const error = searchParams.get('error');
   const registered = searchParams.get('registered');
-  const { signIn, loading } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -46,13 +45,20 @@ export default function LoginPage() {
       setIsSubmitting(true);
       setLoginError(null);
       
-      const result = await signIn(formData.email, formData.password);
+      // Use NextAuth.js signIn function directly
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
       
-      if (!result.success) {
-        setLoginError('Invalid email or password');
+      if (result?.error) {
+        setLoginError(result.error || 'Invalid email or password');
         setIsSubmitting(false);
       } else {
-        router.push(callbackUrl);
+        // Force a manual redirect which ensures the client-side navigation happens
+        console.log('Authentication successful, redirecting to:', callbackUrl);
+        window.location.href = callbackUrl;
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -151,8 +157,8 @@ export default function LoginPage() {
               </div>
               
               <div>
-                <Button className="w-full" disabled={isSubmitting || loading}>
-                  {isSubmitting || loading ? 'Signing in...' : 'Sign In'}
+                <Button className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing in...' : 'Sign In'}
                 </Button>
               </div>
             </form>
