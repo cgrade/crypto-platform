@@ -56,6 +56,7 @@ export const authOptions: NextAuthOptions = {
           };
         } catch (error) {
           console.error("Error in authorize:", error);
+          console.error('Authorization error details:', error);
           return null;
         }
       },
