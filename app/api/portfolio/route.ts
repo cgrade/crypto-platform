@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
+import cryptoApi from "@/lib/api/crypto";
 
 // GET: Fetch the current user's portfolio
 export async function GET() {
@@ -31,8 +32,26 @@ export async function GET() {
         { status: 404 }
       );
     }
-
-    return NextResponse.json({ portfolio });
+    
+    // Fetch latest Bitcoin price from CoinGecko API
+    try {
+      const cryptoPrices = await cryptoApi.getPrices(['bitcoin']);
+      
+      // Add current Bitcoin price from CoinGecko to the portfolio response
+      const portfolioWithPrice = {
+        ...portfolio,
+        btcPrice: cryptoPrices[0]?.current_price || null,
+        priceSource: 'CoinGecko API'
+      };
+      
+      console.log('Portfolio API using BTC price from CoinGecko:', cryptoPrices[0]?.current_price);
+      
+      return NextResponse.json({ portfolio: portfolioWithPrice });
+    } catch (priceError) {
+      console.error('Error fetching Bitcoin price:', priceError);
+      // Still return the portfolio even if price fetch fails
+      return NextResponse.json({ portfolio });
+    }
   } catch (error) {
     console.error("Error fetching portfolio:", error);
     return NextResponse.json(

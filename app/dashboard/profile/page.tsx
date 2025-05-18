@@ -3,23 +3,37 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { format } from 'date-fns';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(true);
-  const [profileForm, setProfileForm] = useState({
+  
+  // Define interface for profile form to avoid TypeScript errors
+  interface ProfileForm {
+    name: string;
+    email: string;
+    country: string;
+    timezone: string;
+    bio: string;
+  }
+  
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
     name: '',
     email: '',
-    phone: '',
     country: '',
     timezone: '',
-    bio: ''
+    bio: '' // Bio is blank by default
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [profileIsSubmitting, setProfileIsSubmitting] = useState(false);
   const [passwordIsSubmitting, setPasswordIsSubmitting] = useState(false);
@@ -34,10 +48,9 @@ export default function ProfilePage() {
         setProfileForm({
           name: session.user.name || '',
           email: session.user.email || '',
-          phone: '+1 (555) 123-4567', // Mock data
           country: 'United States',    // Mock data
           timezone: 'America/New_York', // Mock data
-          bio: 'Blockchain enthusiast and crypto investor. Interested in DeFi and Web3 technologies.'
+          bio: ''  // Empty by default until user updates it
         });
         setIsLoading(false);
       }, 800);
@@ -87,9 +100,7 @@ export default function ProfilePage() {
       errors.email = 'Invalid email address';
     }
     
-    if (profileForm.phone && !/^\+?[0-9\s\-()]{10,20}$/.test(profileForm.phone)) {
-      errors.phone = 'Invalid phone number';
-    }
+    // Phone validation removed
     
     return errors;
   };
@@ -219,23 +230,9 @@ export default function ProfilePage() {
               </div>
               <h2 className="text-xl font-bold mb-1">{profileForm.name}</h2>
               <p className="text-gray-400 mb-4">{profileForm.email}</p>
-              <div className="w-full border-t border-dark-100 pt-4 mt-2">
-                <div className="text-sm text-gray-400 mb-2">Account Status</div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span className="text-green-500 font-medium">Verified</span>
-                </div>
-              </div>
               <div className="w-full border-t border-dark-100 pt-4 mt-4">
                 <div className="text-sm text-gray-400 mb-2">Member Since</div>
-                <div className="font-medium">May 2023</div>
-              </div>
-              <div className="w-full border-t border-dark-100 pt-4 mt-4">
-                <div className="text-sm text-gray-400 mb-2">KYC Status</div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span className="text-green-500 font-medium">Completed</span>
-                </div>
+                <div className="font-medium">{format(new Date(), 'MMMM yyyy')}</div>
               </div>
             </div>
           </div>
@@ -291,20 +288,6 @@ export default function ProfilePage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1">
-                        Phone Number
-                      </label>
-                      <input
-                        id="phone"
-                        name="phone"
-                        type="text"
-                        className={`input w-full ${formErrors.phone ? 'border-red-500' : ''}`}
-                        value={profileForm.phone}
-                        onChange={handleProfileChange}
-                      />
-                      {formErrors.phone && <p className="mt-1 text-xs text-red-500">{formErrors.phone}</p>}
-                    </div>
                     <div>
                       <label htmlFor="country" className="block text-sm font-medium text-gray-300 mb-1">
                         Country
@@ -384,14 +367,27 @@ export default function ProfilePage() {
                     <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-300 mb-1">
                       Current Password
                     </label>
-                    <input
-                      id="currentPassword"
-                      name="currentPassword"
-                      type="password"
-                      className={`input w-full ${formErrors.currentPassword ? 'border-red-500' : ''}`}
-                      value={passwordForm.currentPassword}
-                      onChange={handlePasswordChange}
-                    />
+                    <div className="relative">
+                      <input
+                        id="currentPassword"
+                        name="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        className={`input w-full pr-10 ${formErrors.currentPassword ? 'border-red-500' : ''}`}
+                        value={passwordForm.currentPassword}
+                        onChange={handlePasswordChange}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                      >
+                        {showCurrentPassword ? (
+                          <FiEyeOff className="w-5 h-5" />
+                        ) : (
+                          <FiEye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                     {formErrors.currentPassword && <p className="mt-1 text-xs text-red-500">{formErrors.currentPassword}</p>}
                   </div>
                   
@@ -400,28 +396,54 @@ export default function ProfilePage() {
                       <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-1">
                         New Password
                       </label>
-                      <input
-                        id="newPassword"
-                        name="newPassword"
-                        type="password"
-                        className={`input w-full ${formErrors.newPassword ? 'border-red-500' : ''}`}
-                        value={passwordForm.newPassword}
-                        onChange={handlePasswordChange}
-                      />
+                      <div className="relative">
+                        <input
+                          id="newPassword"
+                          name="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          className={`input w-full pr-10 ${formErrors.newPassword ? 'border-red-500' : ''}`}
+                          value={passwordForm.newPassword}
+                          onChange={handlePasswordChange}
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                        >
+                          {showNewPassword ? (
+                            <FiEyeOff className="w-5 h-5" />
+                          ) : (
+                            <FiEye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                       {formErrors.newPassword && <p className="mt-1 text-xs text-red-500">{formErrors.newPassword}</p>}
                     </div>
                     <div>
                       <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
                         Confirm New Password
                       </label>
-                      <input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type="password"
-                        className={`input w-full ${formErrors.confirmPassword ? 'border-red-500' : ''}`}
-                        value={passwordForm.confirmPassword}
-                        onChange={handlePasswordChange}
-                      />
+                      <div className="relative">
+                        <input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          className={`input w-full pr-10 ${formErrors.confirmPassword ? 'border-red-500' : ''}`}
+                          value={passwordForm.confirmPassword}
+                          onChange={handlePasswordChange}
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                        >
+                          {showConfirmPassword ? (
+                            <FiEyeOff className="w-5 h-5" />
+                          ) : (
+                            <FiEye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                       {formErrors.confirmPassword && <p className="mt-1 text-xs text-red-500">{formErrors.confirmPassword}</p>}
                     </div>
                   </div>

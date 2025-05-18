@@ -213,7 +213,7 @@ export default function DepositPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-white">Deposit Crypto</h1>
-          <p className="text-gray-400">Send cryptocurrency to your CryptoPro wallet</p>
+          <p className="text-gray-400">Send cryptocurrency to your CryptPro wallet</p>
         </div>
       </div>
       

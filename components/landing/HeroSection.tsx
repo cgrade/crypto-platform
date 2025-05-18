@@ -23,14 +23,14 @@ const HeroSection: React.FC = () => {
               Experience next-generation crypto trading with powerful tools, real-time tracking, and secure wallet services. Take control of your financial future today.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/register">
-                <Button size="lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start">
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto">
                   Get Started Now
                 </Button>
               </Link>
-              <Link href="/features">
-                <Button variant="outline" size="lg">
+              <Link href="/features" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   View Features
                 </Button>
               </Link>
@@ -39,10 +39,10 @@ const HeroSection: React.FC = () => {
             {/* Removed company list section */}
           </div>
           
-          <div className="relative lg:h-[600px] flex items-center justify-center">
-            <div className="w-full max-w-[500px] aspect-square relative">
-              {/* We would use an actual app screenshot image here */}
-              <div className="card w-full h-full bg-dark-200 border border-dark-100 rounded-3xl shadow-glow overflow-hidden p-6">
+          <div className="relative lg:h-[600px] flex items-center justify-center mx-auto">
+            <div className="w-full max-w-[500px] aspect-square relative mx-auto lg:mx-0">
+              {/* App screenshot with enhanced visual appeal */}
+              <div className="card w-full h-full bg-dark-200 border border-dark-100 rounded-3xl shadow-glow overflow-hidden p-6 transform hover:scale-[1.01] transition-all duration-300">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-white font-medium">Dashboard</div>
                   <div className="flex items-center gap-2">
@@ -66,7 +66,8 @@ const HeroSection: React.FC = () => {
                     </div>
                     
                     {[
-                      { name: 'Bitcoin', symbol: 'BTC', value: '$45,380.00', change: '+3.5%' },
+                      { name: 'Bitcoin', symbol: 'BTC', value: '$103,440.21', change: '+2.8%' },
+                      { name: 'Ethereum', symbol: 'ETH', value: '$2,245.10', change: '+1.9%' },
                     ].map((asset, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-dark-100 rounded-lg">
                         <div className="flex items-center gap-3">

@@ -11,8 +11,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Crypto Platform | Trade Cryptocurrencies",
+  title: "CryptPro | Trade Cryptocurrencies",
   description: "A modern crypto trading platform with portfolio management and real-time tracking",
+  icons: {
+    icon: [
+      { url: "/images/logo.png" }
+    ],
+    apple: "/images/logo.png",
+  },
 };
 
 export default function RootLayout({

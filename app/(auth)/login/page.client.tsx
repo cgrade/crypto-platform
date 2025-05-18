@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const error = searchParams.get('error');
   const registered = searchParams.get('registered');
 
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -80,7 +82,7 @@ export default function LoginPage() {
                 height={40} 
                 className="rounded-full" 
               />
-              <span className="text-white font-bold text-xl">CryptoPro</span>
+              <span className="text-white font-bold text-xl">CryptPro</span>
             </Link>
           </div>
           
@@ -127,18 +129,31 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="input w-full"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={isSubmitting}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    className="input w-full pr-10"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <FiEyeOff className="w-5 h-5" />
+                    ) : (
+                      <FiEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
               
               <div className="flex items-center">

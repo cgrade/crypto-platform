@@ -1,4 +1,4 @@
-# Sample Login Credentials for CryptoPro Platform
+# Sample Login Credentials for CryptPro Platform
 
 ## Admin Account
 ```

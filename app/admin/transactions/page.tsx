@@ -88,23 +88,18 @@ export default function AdminTransactionsPage() {
     if (!transaction) return;
     
     setIsProcessing(true);
-    setSuccessMessage('');
     setErrorMessage('');
+    setSuccessMessage('');
     
     try {
-      const endpoint = transaction.type === 'DEPOSIT' 
-        ? '/api/transactions/deposit' 
-        : '/api/transactions/withdraw';
-      
-      const response = await fetch(endpoint, {
-        method: 'PUT',
+      const response = await fetch(`/api/admin/transactions/${transaction.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          transactionId: transaction.id,
           status: approved ? 'COMPLETED' : 'FAILED',
-          txHash: txHashInput || undefined,
+          txHash: txHashInput || null,
         }),
       });
       
@@ -251,8 +246,8 @@ export default function AdminTransactionsPage() {
         </div>
       </div>
       
-      {/* Transactions table */}
-      <div className="bg-dark-200 rounded-xl overflow-hidden shadow-md">
+      {/* Transactions table - Desktop */}
+      <div className="bg-dark-200 rounded-xl overflow-hidden shadow-md hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
@@ -337,76 +332,187 @@ export default function AdminTransactionsPage() {
           </table>
         </div>
       </div>
+
+      {/* Mobile-friendly card view */}
+      <div className="md:hidden space-y-4">
+        {transactions.length === 0 ? (
+          <div className="bg-dark-200 rounded-xl p-6 text-center text-gray-400">
+            No transactions found matching your criteria
+          </div>
+        ) : (
+          transactions.map((transaction) => (
+            <div key={transaction.id} className="bg-dark-200 rounded-xl p-4 shadow-md">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium ${
+                    transaction.type === 'DEPOSIT' 
+                      ? 'bg-blue-900/30 text-blue-400 border border-blue-800' 
+                      : 'bg-purple-900/30 text-purple-400 border border-purple-800'
+                  }`}>
+                    {transaction.type}
+                  </span>
+                </div>
+                <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium ${
+                  transaction.status === 'PENDING' 
+                    ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-800' 
+                    : transaction.status === 'COMPLETED'
+                    ? 'bg-green-900/30 text-green-400 border border-green-800'
+                    : 'bg-red-900/30 text-red-400 border border-red-800'
+                }`}>
+                  {transaction.status}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center mb-3">
+                <div className="text-sm">
+                  <div className="font-medium">{transaction.user.name || 'User'}</div>
+                  <div className="text-xs text-gray-400">{transaction.user.email}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-medium">{formatCrypto(transaction.amount, transaction.cryptoType)}</div>
+                  <div className="text-xs text-gray-400">{formatCurrency(transaction.amount * 50000)}</div>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center text-sm text-gray-400">
+                <div>{format(new Date(transaction.createdAt), 'MMM d, yyyy HH:mm')}</div>
+                {transaction.status === 'PENDING' ? (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setSelectedTransaction(transaction);
+                      setTxHashInput('');
+                    }}
+                    className="w-full mt-2"
+                  >
+                    Process Transaction
+                  </Button>
+                ) : (
+                  transaction.txHash && (
+                    <div className="text-xs overflow-hidden text-ellipsis">
+                      Tx: {transaction.txHash.substring(0, 8)}...
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
       
       {/* Transaction processing modal */}
       {selectedTransaction && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-dark-200 rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">
-              Process {selectedTransaction.type.toLowerCase()}
-            </h3>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="bg-dark-200 rounded-xl p-6 max-w-md w-full mx-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">
+                Process {selectedTransaction.type.toLowerCase()}
+              </h3>
+              <button 
+                onClick={() => setSelectedTransaction(null)}
+                className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-dark-100"
+                aria-label="Close modal"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             
+            {/* Transaction status badge */}
             <div className="mb-4">
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-400">User:</span>
-                <span>{selectedTransaction.user.name || 'User'} ({selectedTransaction.user.email})</span>
+              <span className={`inline-block px-3 py-1.5 text-sm rounded-lg font-medium ${
+                selectedTransaction.status === 'PENDING' 
+                  ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-800' 
+                  : selectedTransaction.status === 'COMPLETED'
+                  ? 'bg-green-900/30 text-green-400 border border-green-800'
+                  : 'bg-red-900/30 text-red-400 border border-red-800'
+              }`}>
+                {selectedTransaction.status}
+              </span>
+            </div>
+            
+            {/* Transaction details */}
+            <div className="p-4 bg-dark-300 rounded-lg mb-4 space-y-3">
+              <div>
+                <div className="text-sm text-gray-400 mb-1">User</div>
+                <div className="flex justify-between items-center">
+                  <div className="font-medium">{selectedTransaction.user.name || 'User'}</div>
+                  <div className="text-sm text-gray-400">{selectedTransaction.user.email}</div>
+                </div>
               </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-400">Amount:</span>
-                <span>{formatCrypto(selectedTransaction.amount, selectedTransaction.cryptoType)}</span>
+              
+              <div>
+                <div className="text-sm text-gray-400 mb-1">Amount</div>
+                <div className="flex justify-between items-center">
+                  <div className="font-medium">{formatCrypto(selectedTransaction.amount, selectedTransaction.cryptoType)}</div>
+                  <div className="text-sm text-gray-400">{formatCurrency(selectedTransaction.amount * 50000)}</div>
+                </div>
               </div>
-              {selectedTransaction.type === 'WITHDRAWAL' && (
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400">To Address:</span>
-                  <span className="text-xs break-all">{selectedTransaction.cryptoAddress}</span>
+              
+              <div>
+                <div className="text-sm text-gray-400 mb-1">Date</div>
+                <div className="font-medium">{format(new Date(selectedTransaction.createdAt), 'MMM d, yyyy HH:mm:ss')}</div>
+              </div>
+              
+              {selectedTransaction.type === 'DEPOSIT' && selectedTransaction.cryptoAddress && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">From Address</div>
+                  <div className="font-medium break-all text-sm">{selectedTransaction.cryptoAddress}</div>
                 </div>
               )}
-              {selectedTransaction.type === 'DEPOSIT' && (
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400">User's BTC Address:</span>
-                  <span className="text-xs break-all">{selectedTransaction.user.btcAddress || 'Not set'}</span>
+              
+              {selectedTransaction.type === 'WITHDRAWAL' && selectedTransaction.cryptoAddress && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">To Address</div>
+                  <div className="font-medium break-all text-sm">{selectedTransaction.cryptoAddress}</div>
                 </div>
               )}
             </div>
             
+            {/* Transaction hash input for completed transactions */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Transaction Hash (optional)
+              <label htmlFor="txHash" className="block text-sm font-medium text-gray-300 mb-2">
+                Transaction Hash
               </label>
               <input
                 type="text"
-                className="input w-full"
-                placeholder="e.g. 7b5e72f023cd0121dbc4..."
+                id="txHash"
                 value={txHashInput}
                 onChange={(e) => setTxHashInput(e.target.value)}
-                disabled={isProcessing}
+                className="w-full p-3 bg-dark-100 rounded-lg border border-dark-50 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Enter blockchain transaction hash"
               />
-              <p className="mt-1 text-xs text-gray-400">
-                For {selectedTransaction.type === 'DEPOSIT' ? 'deposits' : 'withdrawals'}, you can record the on-chain transaction hash.
+              <p className="text-xs text-gray-500 mt-1">
+                Required when approving, optional when rejecting
               </p>
             </div>
             
-            <div className="flex space-x-3">
-              <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
-                onClick={() => handleApproveTransaction(selectedTransaction, true)}
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Processing...' : 'Approve'}
-              </Button>
-              <Button
-                className="flex-1 bg-red-600 hover:bg-red-700"
-                onClick={() => handleApproveTransaction(selectedTransaction, false)}
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Processing...' : 'Reject'}
-              </Button>
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
               <Button
                 variant="outline"
                 onClick={() => setSelectedTransaction(null)}
                 disabled={isProcessing}
+                className="w-full sm:w-auto order-3 sm:order-1"
               >
                 Cancel
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => handleApproveTransaction(selectedTransaction, false)}
+                disabled={isProcessing}
+                className="w-full sm:w-auto order-2 bg-red-900/30 text-red-400 border-red-800 hover:bg-red-900/50 hover:text-red-300"
+              >
+                {isProcessing ? 'Processing...' : 'Reject'}
+              </Button>
+              
+              <Button
+                onClick={() => handleApproveTransaction(selectedTransaction, true)}
+                disabled={isProcessing || (selectedTransaction.type === 'DEPOSIT' && !txHashInput)}
+                className="w-full sm:w-auto order-1 sm:order-3"
+              >
+                {isProcessing ? 'Processing...' : 'Approve'}
               </Button>
             </div>
           </div>

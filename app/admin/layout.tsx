@@ -6,8 +6,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import DashboardLayoutComponent from '@/components/dashboard/DashboardLayout';
 
 export const metadata: Metadata = {
-  title: 'Admin Dashboard | CryptoPro',
-  description: 'CryptoPro Admin Dashboard',
+  title: 'Admin Dashboard | CryptPro',
+  description: 'CryptPro Admin Dashboard',
 };
 
 export default async function AdminLayout({

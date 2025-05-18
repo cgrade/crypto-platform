@@ -6,7 +6,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import DashboardLayoutComponent from '@/components/dashboard/DashboardLayout';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | CryptoPro',
+  title: 'Dashboard | CryptPro',
   description: 'Manage your crypto portfolio and transactions',
 };
 

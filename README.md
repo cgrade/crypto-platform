@@ -1,4 +1,4 @@
-# CryptoPro Platform
+# CryptPro Platform
 
 A Next.js-based cryptocurrency investment and management platform with user portfolio tracking, deposit/withdrawal management, and real-time pricing data.
 

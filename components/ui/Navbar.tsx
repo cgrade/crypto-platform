@@ -23,7 +23,7 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
             <div className="relative w-10 h-10 overflow-hidden">
               <Image 
                 src="/images/logo.png" 
-                alt="CryptoPro Logo" 
+                alt="CryptPro Logo" 
                 width={40} 
                 height={40} 
                 className="object-contain" 
@@ -32,7 +32,7 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
                 quality={90}
               />
             </div>
-            <span className="text-white font-bold text-xl">CryptoPro</span>
+            <span className="text-white font-bold text-xl bg-gradient-to-r from-primary-400 to-blue-400 bg-clip-text text-transparent">CryptPro</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">

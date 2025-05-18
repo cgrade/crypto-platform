@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Authentication | CryptoPro',
-  description: 'Sign up or log in to your CryptoPro account',
+  title: 'Authentication | CryptPro',
+  description: 'Sign up or log in to your CryptPro account',
 };
 
 export default function AuthLayout({

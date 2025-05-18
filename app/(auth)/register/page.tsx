@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -12,6 +13,8 @@ import { useNextAuth } from '@/context/NextAuthContext';
 export default function RegisterPage() {
   const router = useRouter();
   const { signUp, loading } = useNextAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -80,7 +83,7 @@ export default function RegisterPage() {
       
       try {
         const name = `${formData.firstName} ${formData.lastName}`;
-        const result = await signUp(formData.email, formData.password, name);
+        const result = await signUp(formData.email, formData.password, name) as { success: boolean, error?: string };
         
         if (!result.success) {
           throw new Error(result.error || 'Registration failed');
@@ -109,7 +112,7 @@ export default function RegisterPage() {
                 height={40} 
                 className="rounded-full" 
               />
-              <span className="text-white font-bold text-xl">CryptoPro</span>
+              <span className="text-white font-bold text-xl">CryptPro</span>
             </Link>
           </div>
           
@@ -189,17 +192,30 @@ export default function RegisterPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
                   Password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className={`input w-full ${errors.password ? 'border-red-500' : ''}`}
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    className={`input w-full pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleChange}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <FiEyeOff className="w-5 h-5" />
+                    ) : (
+                      <FiEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
                 {errors.password ? (
                   <p className="mt-1 text-xs text-red-500">{errors.password}</p>
                 ) : (
@@ -213,17 +229,30 @@ export default function RegisterPage() {
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
                   Confirm Password
                 </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className={`input w-full ${errors.confirmPassword ? 'border-red-500' : ''}`}
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                />
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    className={`input w-full pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                    placeholder="••••••••"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                  >
+                    {showConfirmPassword ? (
+                      <FiEyeOff className="w-5 h-5" />
+                    ) : (
+                      <FiEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
                 {errors.confirmPassword && (
                   <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>
                 )}

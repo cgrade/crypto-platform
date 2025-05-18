@@ -1,14 +1,39 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
-import cryptoApi, { Crypto, ApiError } from '@/lib/api/crypto';
+import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BitcoinChart from '@/components/dashboard/BitcoinChart';
+import cryptoApi, { Crypto, ApiError } from '@/lib/api/crypto';
+import { cryptoPriceUtils } from '@/lib/utils/crypto-price';
+
+// Define interfaces for portfolio data
+interface PortfolioAsset {
+  id: string;
+  symbol: string;
+  amount: number;
+  currentPrice?: number;
+}
+
+interface Portfolio {
+  id: string;
+  totalValue: number;
+  assets: PortfolioAsset[];
+  btcPrice?: number;
+}
+
+interface PortfolioDisplayItem {
+  id: string;
+  asset: string;
+  balance: number;
+  price: number;
+  value: number;
+  change24h: number;
+}
 
 // Using the Crypto type from our API client
 
@@ -45,15 +70,15 @@ export default function PortfolioPage() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   
   // User portfolio data
-  const [userPortfolio, setUserPortfolio] = useState({
+  const [userPortfolio, setUserPortfolio] = useState<Portfolio>({
     id: '',
     totalValue: 0,
     assets: []
   });
   
   // Formatted portfolio data for display
-  const [portfolioDisplay, setPortfolioDisplay] = useState([
-    { id: 1, asset: 'BTC', balance: 0, price: 0, value: 0, change24h: 0 }
+  const [portfolioDisplay, setPortfolioDisplay] = useState<PortfolioDisplayItem[]>([
+    { id: '1', asset: 'BTC', balance: 0, price: 0, value: 0, change24h: 0 }
   ]);
   
   // Fetch user portfolio data from backend
@@ -82,78 +107,72 @@ export default function PortfolioPage() {
     }
   }, [session]);
   
-  // Define the SWR fetcher function using our type-safe API client
-  const fetcher = async (url: string) => {
+  // Import the shared Bitcoin price function
+  // We need to use dynamic import since this is a client component
+  const fetchBitcoinPrice = async (): Promise<number> => {
+    // Import the module dynamically
+    const { getBitcoinPrice } = await import('@/lib/shared/bitcoin-price');
+    
     try {
-      // Extract the coin IDs from the URL
-      const urlObj = new URL(url);
-      const coinsParam = urlObj.searchParams.get('ids') || 'bitcoin';
-      const coins = coinsParam.split(',');
-      
-      // Use our type-safe API client
-      return await cryptoApi.getPrices(coins);
+      // Use the exact same function as the dashboard page
+      const price = await getBitcoinPrice();
+      console.log('Portfolio page using SHARED Bitcoin price function:', price);
+      return price;
     } catch (error) {
-      if (error instanceof ApiError) {
-        console.error(`API Error (${error.status}): ${error.message}`);
-      }
-      throw error;
+      console.error('Portfolio - Failed to get BTC price:', error);
+      // Return a default value instead of throwing error for better UX
+      return 0;
     }
   };
   
-  // Use SWR for real-time crypto prices
-  const { data: cryptoData, error: cryptoError } = useSWR(
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h",
-    fetcher,
+  // Use SWR for shared Bitcoin price function
+  const { data: btcPrice, error: btcPriceError } = useSWR<number>(
+    'shared-bitcoin-price',
+    fetchBitcoinPrice,
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
-      revalidateOnFocus: true,
-      dedupingInterval: 10000, // Dedupe requests within 10 seconds
-      errorRetryCount: 3,
-      onSuccess: () => {}
+      refreshInterval: 120000, // Refresh data every 2 minutes to avoid rate limits
+      shouldRetryOnError: false, // Don't retry on error - fetchBitcoinPrice already returns 0 on error
+      dedupingInterval: 30000, // Dedupe requests within 30 seconds
+      errorRetryCount: 1, // Only retry once
+      revalidateOnFocus: false, // Don't revalidate when window regains focus
+      fallbackData: 0 // Safe fallback value
     }
   );
   
   useEffect(() => {
-    if (userPortfolio.assets?.length > 0) {
-      // Get the BTC price - prefer the API price, fall back to the price from our backend API
-      const btcPriceFromApi = cryptoData ? cryptoData[0]?.current_price : 0;
-      const btcPriceFromBackend = (userPortfolio as any).btcPrice || 0;
-      const btcPrice = btcPriceFromApi || btcPriceFromBackend;
+    if (userPortfolio.assets?.length > 0 && btcPrice) {
+      // We now have direct BTC price from CoinGecko - no need for utilities
+      // Log the Bitcoin price being used
+      console.log('Portfolio - Using direct CoinGecko BTC price:', btcPrice);
       
       // Update crypto prices state for other components to use
       setCryptoPrices({
         BTC: btcPrice
       });
       
-      // Format portfolio data for display
-      const displayData = userPortfolio.assets.map(asset => {
-        // Get price from various sources in order of preference
-        let currentPrice = 0;
+      // Calculate asset values directly using the BTC price from CoinGecko
+      const assetsWithValue = userPortfolio.assets.map(asset => {
         if (asset.symbol === 'BTC') {
-          // 1. Use price from CoinGecko API if available
-          if (btcPriceFromApi) {
-            currentPrice = btcPriceFromApi;
-          }
-          // 2. Use currentPrice from our backend API if available  
-          else if ((asset as any).currentPrice) {
-            currentPrice = (asset as any).currentPrice;
-          }
-          // 3. Use the price from our backend
-          else if (btcPriceFromBackend) {
-            currentPrice = btcPriceFromBackend;
-          }
+          const value = asset.amount * btcPrice;
+          return {
+            ...asset,
+            price: btcPrice,
+            value: value,
+            change24h: 0 // We don't have change data from simple price endpoint
+          };
         }
-        
-        // Calculate asset value based on amount and price
-        const assetValue = asset.amount * currentPrice;
-        
+        return asset;
+      });
+      
+      // Format portfolio data for display
+      const displayData = assetsWithValue.map(asset => {
         return {
           id: asset.id,
           asset: asset.symbol,
           balance: asset.amount,
-          price: currentPrice,
-          value: assetValue,
-          change24h: asset.symbol === 'BTC' && cryptoData ? (cryptoData[0]?.price_change_percentage_24h || 0) : 0
+          price: asset.price || 0,
+          value: asset.value || 0,
+          change24h: asset.change24h || 0
         };
       });
       
@@ -161,14 +180,14 @@ export default function PortfolioPage() {
       setPortfolioDisplay(displayData);
       setIsLoadingPrices(false);
       
-      console.log('Updated portfolio display:', displayData);
-    } else if (cryptoError) {
-      console.error('Error fetching crypto prices:', cryptoError);
+      console.log('Updated portfolio display with direct CoinGecko price:', displayData);
+    } else if (btcPriceError) {
+      console.error('Error fetching BTC price from CoinGecko:', btcPriceError);
       setIsLoadingPrices(false);
-    } else if (!userPortfolio.assets?.length && !cryptoError) {
+    } else if (!userPortfolio.assets?.length && !btcPriceError) {
       setIsLoadingPrices(true);
     }
-  }, [cryptoData, cryptoError, userPortfolio]);
+  }, [btcPrice, btcPriceError, userPortfolio]);
   
   // This useEffect was duplicating functionality - removed
   
@@ -350,37 +369,26 @@ export default function PortfolioPage() {
         </div>
         <div className="flex space-x-4">
           <div className="flex gap-2 max-w-xs mx-auto sm:max-w-none sm:mx-0">
-            <Button 
-              onClick={() => {
-                setIsDepositModalOpen(true);
-                setApiResponse({});
-                setFormErrors({});
-              }}
-              className="flex-1 px-6"
-            >
-              <span className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Deposit
-              </span>
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setIsWithdrawModalOpen(true);
-                setApiResponse({});
-                setFormErrors({});
-              }}
-              className="flex-1 px-6"
-            >
-              <span className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Withdraw
-              </span>
-            </Button>
+            <Link href="/dashboard/deposit" className="flex-1">
+              <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:shadow-lg h-10 px-6 py-2 w-full">
+                <span className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Deposit
+                </span>
+              </div>
+            </Link>
+            <Link href="/dashboard/withdraw" className="flex-1">
+              <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 border border-primary-500 text-primary-500 hover:bg-primary-500/10 h-10 px-6 py-2 w-full">
+                <span className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Withdraw
+                </span>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
@@ -424,11 +432,10 @@ export default function PortfolioPage() {
                 {isLoadingPrices ? (
                   <div className="animate-pulse h-4 w-24 bg-dark-100 rounded"></div>
                 ) : (
-                  <span className={cryptoData && (cryptoData[0].price_change_percentage_24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
-                    {cryptoData && cryptoData[0].price_change_percentage_24h
-                      ? `${cryptoData[0].price_change_percentage_24h > 0 ? '+' : ''}${cryptoData[0].price_change_percentage_24h.toFixed(2)}% today` 
-                      : '0.00% today'
-                    }
+                  <span className="text-gray-500">
+                    {/* We don't have price change data from the simple price CoinGecko endpoint */}
+                    {/* Using neutral color since we don't have price change percentage */}
+                    {btcPrice ? `Current BTC: $${btcPrice.toLocaleString()}` : 'Loading price...'}
                   </span>
                 )}
               </div>
@@ -439,39 +446,26 @@ export default function PortfolioPage() {
           <div className="bg-dark-200 p-5 sm:col-span-2 lg:col-span-1 rounded-xl border border-dark-100 hover:border-primary-500/20 transition-colors duration-200 shadow-sm">
             <h3 className="text-sm text-gray-400 mb-3">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setIsDepositModalOpen(true);
-                  setApiResponse({});
-                  setFormErrors({});
-                }}
-                className="bg-green-600 hover:bg-green-700 transition-colors duration-200"
-              >
-                <span className="flex items-center justify-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>Deposit</span>
-                </span>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setIsWithdrawModalOpen(true);
-                  setApiResponse({});
-                  setFormErrors({});
-                }}
-                className="border-red-600 text-red-500 hover:bg-red-900/20 transition-colors duration-200"
-              >
-                <span className="flex items-center justify-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-6 0v-1m6 0H7" />
-                  </svg>
-                  <span>Withdraw</span>
-                </span>
-              </Button>
+              <Link href="/dashboard/deposit">
+                <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 bg-green-600 hover:bg-green-700 text-white h-9 px-3 py-2">
+                  <span className="flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Deposit</span>
+                  </span>
+                </div>
+              </Link>
+              <Link href="/dashboard/withdraw">
+                <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 border-red-600 text-red-500 hover:bg-red-900/20 border h-9 px-3 py-2">
+                  <span className="flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-6 0v-1m6 0H7" />
+                    </svg>
+                    <span>Withdraw</span>
+                  </span>
+                </div>
+              </Link>
             </div>
           </div>
         </div>

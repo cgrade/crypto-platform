@@ -2,21 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import cryptoApi from '@/lib/api/crypto';
 
-// Function to fetch current BTC price
+// Use the shared cryptoApi to ensure price consistency across the application
 async function getBitcoinPrice() {
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-    if (!response.ok) {
-      console.error('Failed to fetch Bitcoin price:', response.statusText);
-      return 50000; // Fallback price
+    // Use the same API call as the dashboard to ensure consistent pricing
+    const cryptoPrices = await cryptoApi.getPrices(['bitcoin']);
+    if (!cryptoPrices || cryptoPrices.length === 0) {
+      throw new Error('No price data available');
     }
     
-    const data = await response.json();
-    return data.bitcoin.usd;
+    const btcPrice = cryptoPrices[0].current_price;
+    console.log('User portfolio API using shared BTC price:', btcPrice);
+    return btcPrice;
   } catch (error) {
-    console.error('Error fetching Bitcoin price:', error);
-    return 50000; // Fallback price
+    console.error('Error fetching Bitcoin price from shared API:', error);
+    throw error; // No fallbacks - propagate the error
   }
 }
 
@@ -32,9 +34,10 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // Fetch current Bitcoin price
+    // Fetch current Bitcoin price using the shared API client
+    // This will throw an error if CoinGecko API is unavailable - no fallbacks
     const btcPrice = await getBitcoinPrice();
-    console.log('Current BTC price from API:', btcPrice);
+    console.log('Current BTC price from CoinGecko API:', btcPrice);
     
     // Get user portfolio with crypto assets
     let portfolio = await prisma.portfolio.findFirst({
@@ -105,11 +108,21 @@ export async function GET(req: NextRequest) {
       success: true,
       portfolio
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('User portfolio fetch error:', error);
     
+    // Be explicit about CoinGecko API dependency in error message
+    const errorMessage = error instanceof Error && error.message.includes('price') ? 
+      'Failed to fetch current Bitcoin price from CoinGecko API' : 
+      'Failed to fetch portfolio';
+    
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch portfolio' },
+      { 
+        success: false, 
+        message: errorMessage,
+        source: 'CoinGecko API',
+        error: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }

@@ -236,7 +236,7 @@ export default function HelpPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-white">Help & Support</h1>
-          <p className="text-gray-400">Learn how to use CryptoPro</p>
+          <p className="text-gray-400">Learn how to use CryptPro</p>
         </div>
       </div>
       

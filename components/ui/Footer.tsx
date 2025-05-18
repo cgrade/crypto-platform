@@ -12,7 +12,7 @@ const Footer: React.FC = () => {
             <div className="relative w-12 h-12 overflow-hidden">
               <Image 
                 src="/images/logo.png" 
-                alt="CryptoPro Logo" 
+                alt="CryptPro Logo" 
                 width={48} 
                 height={48} 
                 className="object-contain"
@@ -21,17 +21,17 @@ const Footer: React.FC = () => {
                 quality={90}
               />
             </div>
-            <span className="text-white font-bold text-2xl">CryptoPro</span>
+            <span className="text-white font-bold text-2xl">CryptPro</span>
           </Link>
           
           <p className="text-gray-400 text-center max-w-lg mb-6">
-            CryptoPro is the next generation crypto trading platform with advanced portfolio management, real-time tracking, and secure transactions.
+            CryptPro is the next generation crypto trading platform with advanced portfolio management, real-time tracking, and secure transactions.
           </p>
         </div>
         
         <div className="border-t border-dark-200 pt-8">
           <p className="text-center text-gray-500 text-sm">
-            © {new Date().getFullYear()} CryptoPro. All rights reserved.
+            © {new Date().getFullYear()} CryptPro. All rights reserved.
           </p>
         </div>
       </div>

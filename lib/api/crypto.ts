@@ -35,30 +35,48 @@ export const cryptoApi = {
    * @returns Promise with validated crypto data
    */
   async getPrices(coins: string[] = ['bitcoin']): Promise<CryptoResponse> {
-    try {
-      // Use our server-side proxy instead of calling CoinGecko directly
-      // This avoids CORS issues and helps manage rate limiting
-      const response = await fetch(
-        `/api/crypto/prices?coins=${coins.join(',')}`
-      );
-      
-      if (!response.ok) {
-        throw new ApiError(`Failed to fetch crypto prices: ${response.statusText}`, response.status);
+    // Import the shared bitcoin price function
+    const { getBitcoinPrice } = await import('@/lib/shared/bitcoin-price');
+
+    if (coins.includes('bitcoin') && coins.length === 1) {
+      // Directly use the shared bitcoin price function for BTC
+      try {
+        // Get pure Bitcoin price from shared source
+        const price = await getBitcoinPrice();
+        console.log('cryptoApi using SHARED Bitcoin price:', price);
+        
+        // Return in the expected format
+        return [{
+          id: 'bitcoin',
+          symbol: 'btc',
+          name: 'Bitcoin',
+          image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
+          current_price: price,
+          price_change_percentage_24h: 0 // We don't have change data
+        }];
+      } catch (error) {
+        console.error('Failed to get Bitcoin price from shared source:', error);
+        throw new ApiError('Failed to get Bitcoin price', 500);
       }
-      
-      const data = await response.json();
-      
-      // Validate response against schema
-      const validatedData = CryptoResponseSchema.parse(data);
-      return validatedData;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
+    } else {
+      // For other coins or multiple coins, use the CoinGecko API directly
+      try {
+        // Call CoinGecko API directly
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coins.join(',')}&order=market_cap_desc&per_page=100&page=1`
+        );
+        
+        if (!response.ok) {
+          throw new ApiError(`CoinGecko API error: ${response.statusText}`, response.status);
+        }
+        
+        const data = await response.json();
+        const validatedData = CryptoResponseSchema.parse(data);
+        return validatedData;
+      } catch (error) {
+        console.error('Error fetching crypto prices from CoinGecko:', error);
+        throw new ApiError('Failed to fetch cryptocurrency prices', 500);
       }
-      if (error instanceof z.ZodError) {
-        throw new ApiError(`Invalid data format: ${error.message}`, 422);
-      }
-      throw new ApiError('Failed to fetch crypto prices', 500);
     }
   },
   
@@ -89,7 +107,7 @@ export const cryptoApi = {
       minimumFractionDigits: precision,
       maximumFractionDigits: precision
     });
-  }
+  },
 };
 
 export default cryptoApi;
