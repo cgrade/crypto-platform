@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CryptoResponseSchema } from '@/lib/api/crypto';
+import { getBitcoinPrice } from '@/lib/shared/bitcoin-price';
 
 // Add cache control headers to manage CoinGecko rate limits
 export const revalidate = 60; // Revalidate data every minute
@@ -15,6 +16,31 @@ export async function GET(request: NextRequest) {
     
     console.log(`Fetching prices for: ${coins}`);
     
+    // If only bitcoin is requested, use our shared Bitcoin price function
+    if (coins === 'bitcoin') {
+      try {
+        const btcPrice = await getBitcoinPrice();
+        console.log('API route using shared Bitcoin price:', btcPrice);
+        
+        return NextResponse.json([
+          {
+            id: 'bitcoin',
+            symbol: 'btc',
+            name: 'Bitcoin',
+            current_price: btcPrice,
+            price_change_percentage_24h: 0 // We don't have this info from the simple price endpoint
+          }
+        ]);
+      } catch (error) {
+        console.error('Error getting Bitcoin price from shared function:', error);
+        return NextResponse.json(
+          { error: 'Failed to fetch Bitcoin price' },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // For other coins, make the API request directly
     // Add a random delay between 100-500ms to avoid immediate sequential requests
     // This helps prevent rate limiting when multiple components request data simultaneously
     await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 100));
