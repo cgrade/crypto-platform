@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { format } from 'date-fns';
@@ -463,6 +463,16 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+      {/* Logout Button */}
+      <div className="flex justify-end mt-8">
+        <Button
+          className="bg-red-700 hover:bg-red-800 text-white"
+          onClick={() => signOut({ callbackUrl: '/login' })}
+        >
+          Logout
+        </Button>
+      </div>
     </div>
   );
 }
+

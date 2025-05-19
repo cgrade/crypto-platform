@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
-import { NotificationProvider, useNotifications } from '@/contexts/NotificationContext';
-import NotificationDropdown from './NotificationDropdown';
+
 import { LogoutButton } from '../ui/LogoutButton';
 
 interface SidebarItemProps {
@@ -82,185 +81,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
     );
   }
   
-  // Define NotificationBell component inside DashboardLayout
-  // to avoid the "useNotifications is not defined" error
-  const NotificationBell = () => {
-    // We can't use useNotifications() here as it would create a circular dependency
-    // Instead, we'll use a simpler implementation directly in the header
-    const [isOpen, setIsOpen] = useState(false);
-    const [notifications, setNotifications] = useState([
-      {
-        id: '1',
-        type: 'withdraw',
-        status: 'approved',
-        message: 'Your withdrawal request was approved',
-        amount: '0.015',
-        currency: 'BTC',
-        time: '30 minutes ago',
-        read: false
-      },
-      {
-        id: '2',
-        type: 'deposit',
-        status: 'confirmed',
-        message: 'Your deposit was confirmed',
-        amount: '0.05',
-        currency: 'BTC',
-        time: '2 hours ago',
-        read: false
-      }
-    ]);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    
-    // Calculate unread count
-    const unreadCount = notifications.filter(notification => !notification.read).length;
-    
-    // Mark a notification as read
-    const markAsRead = (id: string) => {
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === id ? { ...notification, read: true } : notification
-        )
-      );
-    };
-    
-    // Mark all notifications as read
-    const markAllAsRead = () => {
-      setNotifications(prev => 
-        prev.map(notification => ({ ...notification, read: true }))
-      );
-    };
-    
-    // Close dropdown when clicking outside
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-          setIsOpen(false);
-        }
-      };
-      
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-    
-    // Get status color based on notification status
-    const getStatusColor = (status: string) => {
-      switch (status) {
-        case 'approved':
-        case 'confirmed':
-          return 'text-green-400';
-        case 'rejected':
-          return 'text-red-400';
-        case 'pending':
-        default:
-          return 'text-yellow-400';
-      }
-    };
-    
-    return (
-      <div className="relative" ref={dropdownRef}>
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className="text-gray-400 hover:text-white transition-colors duration-200 p-1.5 rounded-md hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50" 
-          aria-label="Notifications"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        </button>
-        
-        {/* Notification indicator badge - only shows when there are unread notifications */}
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-primary-500 text-xs w-4 h-4 flex items-center justify-center rounded-full">
-            {unreadCount}
-          </span>
-        )}
-        
-        {isOpen && (
-          <div className="absolute right-0 mt-2 w-80 max-h-[400px] overflow-y-auto bg-dark-200 rounded-lg shadow-lg z-50 border border-dark-100">
-            <div className="p-3 border-b border-dark-100 sticky top-0 bg-dark-200 z-10 flex justify-between items-center">
-              <h3 className="text-sm font-medium">Notifications</h3>
-              {unreadCount > 0 && (
-                <button 
-                  onClick={markAllAsRead}
-                  className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
-                >
-                  Mark all as read
-                </button>
-              )}
-            </div>
-            
-            {notifications.length === 0 ? (
-              <div className="p-6 text-center text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto text-gray-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <p>No notifications yet</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-dark-100">
-                {notifications.map(notification => {
-                  const href = notification.type === 'withdraw' ? '/dashboard/withdraw' : '/dashboard/deposit';
-                  const icon = notification.type === 'withdraw' ? (
-                    <div className="rounded-full bg-blue-500/20 p-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </div>
-                  ) : (
-                    <div className="rounded-full bg-green-500/20 p-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </div>
-                  );
-                  
-                  return (
-                    <Link 
-                      key={notification.id}
-                      href={href}
-                      className={`block p-4 hover:bg-dark-100/50 transition-colors ${notification.read ? 'opacity-70' : ''}`}
-                      onClick={() => {
-                        markAsRead(notification.id);
-                        setIsOpen(false);
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        {icon}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{notification.message}</p>
-                          <div className="mt-1 flex items-center gap-1">
-                            <span className={`text-xs ${getStatusColor(notification.status)}`}>
-                              {notification.status.charAt(0).toUpperCase() + notification.status.slice(1)}
-                            </span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs text-gray-400">
-                              {notification.amount} {notification.currency}
-                            </span>
-                          </div>
-                          <div className="mt-1 text-xs text-gray-500">{notification.time}</div>
-                        </div>
-                        {!notification.read && (
-                          <div className="w-2 h-2 rounded-full bg-primary-500 mt-1 flex-shrink-0"></div>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-            
-            <div className="p-3 border-t border-dark-100 text-center">
-              <Link href="#" className="text-xs text-primary-400 hover:text-primary-300">
-                View all activity
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-  
   return (
     <div className="min-h-screen bg-dark-300 text-white">
       {/* Dashboard Header */}
@@ -314,8 +134,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab =
           </div>
           
           <div className="flex items-center gap-3">
-            <NotificationBell />
-            
             <Link href="/dashboard/profile" className="flex items-center gap-2 border-l border-dark-100 pl-3 py-1.5 px-2 rounded-md hover:bg-dark-100 transition-colors duration-200" aria-label="Profile settings">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-primary-500 flex items-center justify-center text-white font-bold shadow-sm">
                 {session?.user?.name?.charAt(0) || 'U'}

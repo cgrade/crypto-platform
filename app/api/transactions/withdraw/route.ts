@@ -8,7 +8,7 @@ import { z } from 'zod';
 const withdrawRequestSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   cryptoType: z.enum(['BTC']),
-  cryptoAddress: z.string().min(26, 'Valid Bitcoin address required').max(35)
+  cryptoAddress: z.string().min(26, 'Valid Bitcoin address required').max(62)
     .regex(/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/, 'Invalid Bitcoin address format'),
 });
 
@@ -33,11 +33,13 @@ export async function POST(req: NextRequest) {
     
     // Parse request body
     const body = await req.json();
+    console.log('Received withdrawal request body:', body);
     
     // Validate input
     const parseResult = withdrawRequestSchema.safeParse(body);
-    
     if (!parseResult.success) {
+      console.error('Withdrawal validation errors:', parseResult.error.flatten().fieldErrors);
+
       return NextResponse.json(
         { 
           success: false, 

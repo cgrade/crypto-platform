@@ -1,4 +1,4 @@
-"use client";
+// Notifications removed as per user request.
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
@@ -48,82 +48,18 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
 
   const fetchNotifications = async () => {
     try {
-      // In a real implementation, this would be an API call
-      // For now, we'll simulate different notifications for admin vs regular users
-      
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const currentTime = new Date();
-      
-      if (isAdmin) {
-        // Admin sees new transaction submissions
-        setNotifications([
-          {
-            id: '1',
-            message: 'New withdrawal request submitted',
-            type: 'withdraw',
-            status: 'pending',
-            createdAt: new Date(currentTime.getTime() - 15 * 60000), // 15 minutes ago
-            read: false,
-            amount: '0.025',
-            currency: 'BTC'
-          },
-          {
-            id: '2',
-            message: 'New deposit initiated',
-            type: 'deposit',
-            status: 'pending',
-            createdAt: new Date(currentTime.getTime() - 45 * 60000), // 45 minutes ago
-            read: false,
-            amount: '0.15',
-            currency: 'BTC'
-          },
-          {
-            id: '3',
-            message: 'New withdrawal request submitted',
-            type: 'withdraw',
-            status: 'pending',
-            createdAt: new Date(currentTime.getTime() - 120 * 60000), // 2 hours ago
-            read: true,
-            amount: '0.075',
-            currency: 'BTC'
-          }
-        ]);
+      if (!session?.user) return;
+      const res = await fetch('/api/user/notifications');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.notifications)) {
+        // Convert string dates to Date objects
+        const notifications = data.notifications.map((notif: any) => ({
+          ...notif,
+          createdAt: new Date(notif.createdAt),
+        }));
+        setNotifications(notifications);
       } else {
-        // Regular users see status updates for their transactions
-        setNotifications([
-          {
-            id: '1',
-            message: 'Your withdrawal request was approved',
-            type: 'withdraw',
-            status: 'approved',
-            createdAt: new Date(currentTime.getTime() - 30 * 60000), // 30 minutes ago
-            read: false,
-            amount: '0.015',
-            currency: 'BTC'
-          },
-          {
-            id: '2',
-            message: 'Your deposit was confirmed',
-            type: 'deposit',
-            status: 'approved',
-            createdAt: new Date(currentTime.getTime() - 2 * 3600000), // 2 hours ago
-            read: false,
-            amount: '0.05',
-            currency: 'BTC'
-          },
-          {
-            id: '3',
-            message: 'Your withdrawal request was rejected',
-            type: 'withdraw',
-            status: 'rejected',
-            createdAt: new Date(currentTime.getTime() - 5 * 3600000), // 5 hours ago
-            read: true,
-            amount: '0.035',
-            currency: 'BTC'
-          }
-        ]);
+        setNotifications([]);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

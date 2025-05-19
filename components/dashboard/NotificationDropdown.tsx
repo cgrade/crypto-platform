@@ -1,4 +1,4 @@
-"use client";
+// Notifications removed as per user request.
 
 import React, { useRef, useEffect } from 'react';
 import { useNotifications, Notification } from '@/contexts/NotificationContext';

@@ -26,6 +26,8 @@ model User {
   transactions     Transaction[]
   accounts         Account[]
   sessions         Session[]
+  activities       Activity[]
+  notifications    Notification[]
 }
 
 // Role Enum
@@ -120,4 +122,30 @@ model CryptoAsset {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+}
+
+// Activity Model
+model Activity {
+  id        String       @id @default(cuid())
+  userId    String
+  type      ActivityType
+  message   String
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id])
+}
+
+enum ActivityType {
+  PROFIT
+  DEPOSIT
+  WITHDRAWAL
+}
+
+// Notification Model
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }

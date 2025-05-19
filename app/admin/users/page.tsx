@@ -21,6 +21,12 @@ interface AddressForm {
 };
 
 export default function AdminUsersPage() {
+  // ...existing state
+  const [isCrediting, setIsCrediting] = useState(false);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditLoading, setCreditLoading] = useState(false);
+  const [creditSuccess, setCreditSuccess] = useState('');
+  const [creditError, setCreditError] = useState('');
   const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -301,43 +307,57 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <div className="flex justify-end space-x-2">
-                        <div className="flex space-x-2">                 
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            Edit User
-                          </Button>
-                          {user.role !== 'ADMIN' && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="bg-purple-900/20 hover:bg-purple-900/40 border-purple-800/50 text-purple-400"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setSelectedRole('ADMIN');
-                                setIsPromotingToAdmin(true);
-                              }}
-                            >
-                              Make Admin
-                            </Button>
-                          )}
-                        </div>
-                        {user.role !== 'ADMIN' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="bg-red-900/20 hover:bg-red-900/40 border-red-800/50 text-red-400"
-                            onClick={() => {
-                              setDeleteUserId(user.id);
-                              setIsDeleting(true);
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        )}
-                      </div>
+  <div className="flex space-x-2">                 
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => handleEditUser(user)}
+    >
+      Edit User
+    </Button>
+    <Button
+      variant="outline"
+      size="sm"
+      className="bg-green-900/20 hover:bg-green-900/40 border-green-800/50 text-green-400"
+      onClick={() => {
+        setSelectedUser(user);
+        setCreditAmount('');
+        setCreditSuccess('');
+        setCreditError('');
+        setIsCrediting(true);
+      }}
+    >
+      Credit BTC
+    </Button>
+    {user.role !== 'ADMIN' && (
+      <Button 
+        variant="outline" 
+        size="sm"
+        className="bg-purple-900/20 hover:bg-purple-900/40 border-purple-800/50 text-purple-400"
+        onClick={() => {
+          setSelectedUser(user);
+          setSelectedRole('ADMIN');
+          setIsPromotingToAdmin(true);
+        }}
+      >
+        Make Admin
+      </Button>
+    )}
+  </div>
+  {user.role !== 'ADMIN' && (
+    <Button 
+      variant="outline" 
+      size="sm"
+      className="bg-red-900/20 hover:bg-red-900/40 border-red-800/50 text-red-400"
+      onClick={() => {
+        setDeleteUserId(user.id);
+        setIsDeleting(true);
+      }}
+    >
+      Delete
+    </Button>
+  )}
+</div>
                     </td>
                   </tr>
                 ))}
@@ -616,6 +636,80 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
-    </div>
-  );
+    {/* Credit BTC Modal */}
+    {isCrediting && selectedUser && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-dark-200 rounded-xl p-6 w-full max-w-md">
+          <h2 className="text-xl font-semibold mb-4 text-green-400">Credit BTC to User</h2>
+          <p className="text-gray-300 mb-4">
+            Enter the amount of BTC to credit to <span className="font-semibold">{selectedUser.name || selectedUser.email}</span>.
+          </p>
+          <input
+            type="number"
+            min="0"
+            step="0.00000001"
+            placeholder="Amount (BTC)"
+            value={creditAmount}
+            onChange={e => setCreditAmount(e.target.value)}
+            className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-2 text-sm mb-2"
+          />
+          {creditSuccess && (
+            <div className="p-2 bg-green-900/30 border border-green-800 rounded text-green-400 mb-2">{creditSuccess}</div>
+          )}
+          {creditError && (
+            <div className="p-2 bg-red-900/30 border border-red-800 rounded text-red-400 mb-2">{creditError}</div>
+          )}
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCrediting(false);
+                setSelectedUser(null);
+                setCreditAmount('');
+                setCreditSuccess('');
+                setCreditError('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={creditLoading}
+              onClick={async () => {
+                setCreditLoading(true);
+                setCreditSuccess('');
+                setCreditError('');
+                try {
+                  const response = await fetch('/api/admin/credit-asset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: selectedUser.id, amount: parseFloat(creditAmount) })
+                  });
+                  if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to credit BTC');
+                  }
+                  setCreditSuccess('BTC credited successfully!');
+                  setCreditAmount('');
+                  setTimeout(() => {
+                    setIsCrediting(false);
+                    setSelectedUser(null);
+                    setCreditSuccess('');
+                  }, 2000);
+                } catch (error) {
+                  setCreditError(error instanceof Error ? error.message : 'Failed to credit BTC');
+                } finally {
+                  setCreditLoading(false);
+                }
+              }}
+            >
+              {creditLoading ? 'Crediting...' : 'Credit BTC'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+); 
 }
+
