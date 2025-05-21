@@ -60,7 +60,7 @@ export default function WithdrawPage() {
           const portfolioData = await portfolioResponse.json();
           
           // Update balances with actual values from API
-          const btcAsset = portfolioData.portfolio.assets.find((asset: any) => asset.symbol === 'BTC');
+          const btcAsset = portfolioData.portfolio.assets.find((asset: { symbol: string; amount: number; frozen?: number }) => asset.symbol === 'BTC');
           if (btcAsset) {
             setBalances({
               BTC: {

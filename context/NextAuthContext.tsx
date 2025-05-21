@@ -17,7 +17,7 @@ interface NextAuthContextType {
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthResult>;
-  signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, name: string, investmentPlan?: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 }
 
@@ -56,7 +56,7 @@ export const NextAuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   // Sign up new user
-  const signUp = useCallback(async (email: string, password: string, name: string): Promise<AuthResult> => {
+  const signUp = useCallback(async (email: string, password: string, name: string, investmentPlan?: string): Promise<AuthResult> => {
     try {
       setLoading(true);
       
@@ -66,7 +66,7 @@ export const NextAuthProvider = ({ children }: { children: ReactNode }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, investmentPlan }),
       });
       
       const data = await response.json();

@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 
 export default function LoginPage() {
-  const router = useRouter();
+  // const router = useRouter(); // removed unused variable
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const error = searchParams.get('error');
@@ -23,9 +23,7 @@ export default function LoginPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(error || null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(
-    registered ? 'Registration successful! Please sign in.' : null
-  );
+  const successMessage = registered ? 'Registration successful! Please sign in.' : null; // removed setSuccessMessage
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -181,7 +179,7 @@ export default function LoginPage() {
             {/* Social login buttons removed */}
             
             <p className="mt-8 text-center text-sm text-gray-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/register" className="font-medium text-primary-500 hover:text-primary-400">
                 Create an account
               </Link>

@@ -1,10 +1,10 @@
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import cryptoApi, { Crypto } from '@/lib/api/crypto';
+import cryptoApi from '@/lib/api/crypto';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { cryptoPriceUtils } from '@/lib/utils/crypto-price';
+
 import { getBitcoinPrice } from "@/lib/shared/bitcoin-price";
 import { formatDistanceToNow } from 'date-fns';
 
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   // Fetch portfolio with user-friendly error handling
   let portfolio = null;
   let totalPortfolioValue = 0;
-  let portfolioChange24h = 0;
+  const portfolioChange24h = 0;
   
   // Fetch user transactions for the activity feed
   let recentTransactions = [];

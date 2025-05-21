@@ -14,19 +14,25 @@ export async function middleware(req: NextRequest) {
   
   // Get the current URL path
   const url = req.nextUrl.clone();
+  const pathname = req.nextUrl.pathname;
+  
+  // Special case for deposit/withdraw routes - no redirects needed
+  if (pathname === '/dashboard/deposit' || pathname === '/dashboard/withdraw') {
+    return NextResponse.next();
+  }
   
   // Protect dashboard routes - redirect to login if not authenticated
-  if (!isAuthenticated && req.nextUrl.pathname.startsWith('/dashboard')) {
+  if (!isAuthenticated && pathname.startsWith('/dashboard')) {
     url.pathname = '/login';
-    url.searchParams.set('callbackUrl', req.nextUrl.pathname);
+    url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);
   }
   
   // Protect admin routes
-  if (req.nextUrl.pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/admin')) {
     if (!isAuthenticated) {
       url.pathname = '/login';
-      url.searchParams.set('callbackUrl', req.nextUrl.pathname);
+      url.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(url);
     }
     
@@ -36,8 +42,8 @@ export async function middleware(req: NextRequest) {
   
   // Prevent authenticated users from accessing login/register pages
   if (isAuthenticated && (
-    req.nextUrl.pathname.startsWith('/login') || 
-    req.nextUrl.pathname.startsWith('/register')
+    pathname.startsWith('/login') || 
+    pathname.startsWith('/register')
   )) {
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);

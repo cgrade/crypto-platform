@@ -1,10 +1,9 @@
-import { Html, Head, Main, NextScript } from 'next/document'
+import { Html, Head, Main, NextScript } from 'next/document';
 
 export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* Force favicon with timestamp to prevent caching */}
         <link rel="icon" href="/favicon.png?v=1" />
         <link rel="shortcut icon" href="/favicon.png?v=1" />
         <link rel="apple-touch-icon" href="/favicon.png?v=1" />
@@ -70,5 +69,5 @@ export default function Document() {
         <NextScript />
       </body>
     </Html>
-  )
+  );
 }

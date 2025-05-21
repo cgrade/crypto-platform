@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import Link from 'next/link';
 import BitcoinChart from '@/components/dashboard/BitcoinChart';
-import cryptoApi, { Crypto, ApiError } from '@/lib/api/crypto';
-import { cryptoPriceUtils } from '@/lib/utils/crypto-price';
+import cryptoApi from '@/lib/api/crypto';
+
 
 // Define interfaces for portfolio data
 interface PortfolioAsset {
@@ -48,7 +48,7 @@ export default function PortfolioPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
-  const router = useRouter();
+  // const router = useRouter(); // removed unused variable
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [depositForm, setDepositForm] = useState({

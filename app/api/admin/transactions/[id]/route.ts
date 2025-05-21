@@ -37,8 +37,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           updatedAt: new Date(),
         },
       });
-      // If completed, update user portfolio balance
-      if (status === 'COMPLETED' && transaction.type === 'WITHDRAWAL') {
+      // If completed, update user portfolio balance based on transaction type
+      if (status === 'COMPLETED') {
         // Find user's portfolio
         const portfolio = await tx.portfolio.findFirst({
           where: { userId: transaction.userId },
@@ -48,33 +48,99 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             }
           }
         });
-        if (!portfolio || portfolio.assets.length === 0) {
-          throw new Error('User portfolio or asset not found');
+        
+        if (!portfolio) {
+          throw new Error('User portfolio not found');
         }
-        const asset = portfolio.assets[0];
-        // Final balance check
-        if (asset.amount < transaction.amount) {
-          throw new Error('Insufficient balance for withdrawal');
-        }
-        // Update crypto asset amount
-        await tx.cryptoAsset.update({
-          where: { id: asset.id },
-          data: {
-            amount: asset.amount - transaction.amount,
-            updatedAt: new Date()
-          }
-        });
-        // Update total portfolio value (using static BTC price for now)
+        
+        // Use static BTC price for calculations (in a real app, use market price API)
         const btcPrice = 50000;
-        await tx.portfolio.update({
-          where: { id: portfolio.id },
-          data: {
-            totalValue: {
-              decrement: transaction.amount * btcPrice
-            },
-            updatedAt: new Date()
+        
+        if (transaction.type === 'DEPOSIT') {
+          // Handle deposit approval - increase balance
+          console.log(`Processing approved deposit of ${transaction.amount} ${transaction.cryptoType} for user ${transaction.userId}`);
+          
+          if (portfolio.assets.length > 0) {
+            // Update existing asset
+            const asset = portfolio.assets[0];
+            await tx.cryptoAsset.update({
+              where: { id: asset.id },
+              data: {
+                amount: asset.amount + transaction.amount,
+                updatedAt: new Date()
+              }
+            });
+          } else {
+            // Create new asset if it doesn't exist
+            await tx.cryptoAsset.create({
+              data: {
+                symbol: transaction.cryptoType,
+                name: transaction.cryptoType === 'BTC' ? 'Bitcoin' : transaction.cryptoType,
+                amount: transaction.amount,
+                portfolioId: portfolio.id
+              }
+            });
           }
-        });
+          
+          // Increase portfolio total value
+          await tx.portfolio.update({
+            where: { id: portfolio.id },
+            data: {
+              totalValue: {
+                increment: transaction.amount * btcPrice
+              },
+              updatedAt: new Date()
+            }
+          });
+          
+          // Create notification for the user
+          await tx.notification.create({
+            data: {
+              userId: transaction.userId,
+              message: `Your deposit of ${transaction.amount} ${transaction.cryptoType} has been approved and added to your balance.`
+            }
+          });
+          
+        } else if (transaction.type === 'WITHDRAWAL') {
+          // Handle withdrawal approval - decrease balance
+          if (!portfolio || portfolio.assets.length === 0) {
+            throw new Error('User portfolio or asset not found');
+          }
+          
+          const asset = portfolio.assets[0];
+          // Final balance check
+          if (asset.amount < transaction.amount) {
+            throw new Error('Insufficient balance for withdrawal');
+          }
+          
+          // Update crypto asset amount
+          await tx.cryptoAsset.update({
+            where: { id: asset.id },
+            data: {
+              amount: asset.amount - transaction.amount,
+              updatedAt: new Date()
+            }
+          });
+          
+          // Update total portfolio value
+          await tx.portfolio.update({
+            where: { id: portfolio.id },
+            data: {
+              totalValue: {
+                decrement: transaction.amount * btcPrice
+              },
+              updatedAt: new Date()
+            }
+          });
+          
+          // Create notification for the user
+          await tx.notification.create({
+            data: {
+              userId: transaction.userId,
+              message: `Your withdrawal of ${transaction.amount} ${transaction.cryptoType} has been approved.`
+            }
+          });
+        }
       }
       return updatedTransaction;
     });

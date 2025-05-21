@@ -12,16 +12,17 @@ datasource db {
 
 // User Model
 model User {
-  id               String        @id @default(cuid())
+  id               String         @id @default(cuid())
   name             String?
-  email            String        @unique
+  email            String         @unique
   password         String
   image            String?
-  role             Role          @default(USER)
+  role             Role           @default(USER)
+  investmentPlan   InvestmentPlan @default(NONE)
   btcAddress       String?
   btcAddressQrCode String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   portfolios       Portfolio[]
   transactions     Transaction[]
   accounts         Account[]
@@ -34,6 +35,17 @@ model User {
 enum Role {
   USER
   ADMIN
+}
+
+// Investment Plan Enum
+enum InvestmentPlan {
+  STARTER
+  PREMIER
+  PREMIUM
+  SILVER
+  GOLD
+  PLATINUM
+  NONE
 }
 
 // Account Model for OAuth

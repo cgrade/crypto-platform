@@ -14,6 +14,7 @@ const userSchema = z.object({
       'Password must include uppercase, lowercase, number and special character'
     ),
   name: z.string().min(2, 'Name must be at least 2 characters'),
+  investmentPlan: z.enum(['STARTER', 'PREMIER', 'PREMIUM', 'SILVER', 'GOLD', 'PLATINUM', 'NONE']).optional().default('NONE'),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    const { email, password, name } = validationResult.data;
+    const { email, password, name, investmentPlan = 'NONE' } = validationResult.data;
     
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
         name,
         password: hashedPassword,
         role: 'USER',
+        investmentPlan,
       },
       select: {
         id: true,

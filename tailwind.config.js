@@ -46,6 +46,31 @@ module.exports = {
         'glow': '0 0 15px rgba(139, 92, 246, 0.5)',
         'card': '0 4px 20px rgba(0, 0, 0, 0.15)',
       },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: 0.8 },
+          '50%': { opacity: 0.4 },
+        },
+        'pulse-slow': {
+          '0%, 100%': { opacity: 0.6 },
+          '50%': { opacity: 0.3 },
+        },
+      },
+      animation: {
+        float: 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'spin-slow': 'spin 30s linear infinite',
+      },
+      transitionDelay: {
+        '400': '400ms',
+        '600': '600ms',
+        '800': '800ms',
+        '900': '900ms',
+      },
     },
   },
   plugins: [],

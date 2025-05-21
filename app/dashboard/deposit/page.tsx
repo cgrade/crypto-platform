@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { format } from 'date-fns';
+import Image from 'next/image';
 
 type Transaction = {
   id: string;
@@ -275,7 +276,7 @@ export default function DepositPage() {
               <div className="flex flex-col items-center mb-6">
                 {qrCodeUrl ? (
                   <div className="bg-white p-4 rounded-lg mb-4">
-                    <img src={qrCodeUrl} alt="QR Code" className="w-[180px] h-[180px]" />
+                    <Image src={qrCodeUrl} alt="QR Code" width={180} height={180} className="w-[180px] h-[180px]" />
                   </div>
                 ) : (
                   <div className="bg-white p-4 rounded-lg mb-4">

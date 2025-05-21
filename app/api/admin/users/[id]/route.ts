@@ -23,7 +23,8 @@ export async function GET(
       );
     }
 
-    const userId = params.id;
+    // In Next.js 14+, properly await params before using
+    const userId = await params.id;
 
     // Get the specified user
     const user = await prisma.user.findUnique({
@@ -73,8 +74,9 @@ export async function PATCH(
       );
     }
 
-    const userId = params.id;
-    const { btcAddress, btcAddressQrCode, role } = await req.json();
+    // In Next.js 14+, properly await params before using
+    const userId = await params.id;
+    const { btcAddress, btcAddressQrCode, role, investmentPlan } = await req.json();
 
     // Find the user
     const user = await prisma.user.findUnique({
@@ -106,18 +108,17 @@ export async function PATCH(
       );
     }
 
-    // Prepare data update object
-    const updateData: any = {};
-    if (btcAddress !== undefined) updateData.btcAddress = btcAddress;
-    if (btcAddressQrCode !== undefined) updateData.btcAddressQrCode = btcAddressQrCode;
-    if (role !== undefined) updateData.role = role;
-
     // Update user with new data
     const updatedUser = await prisma.user.update({
       where: {
         id: userId,
       },
-      data: updateData,
+      data: {
+        btcAddress,
+        btcAddressQrCode,
+        role: role === 'ADMIN' ? 'ADMIN' : 'USER',
+        investmentPlan: investmentPlan || undefined,
+      },
       select: {
         id: true,
         name: true,
@@ -161,7 +162,8 @@ export async function DELETE(
       );
     }
 
-    const userId = params.id;
+    // In Next.js 14+, properly await params before using
+    const userId = await params.id;
 
     // Prevent deleting the last admin
     const adminCount = await prisma.user.count({

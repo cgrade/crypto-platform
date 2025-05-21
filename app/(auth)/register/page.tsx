@@ -1,12 +1,23 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useNextAuth } from '@/context/NextAuthContext';
+
+// Investment plan types
+type InvestmentPlan = 'STARTER' | 'PREMIER' | 'PREMIUM' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'NONE';
+
+interface PlanDetails {
+  name: string;
+  roi: string;
+  minDeposit: string;
+  maxDeposit: string;
+  description: string;
+}
 
 // Metadata moved to layout.tsx as this is now a client component
 
@@ -21,8 +32,28 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    investmentPlan: 'NONE' as InvestmentPlan,
     terms: false
   });
+  
+  const [plans, setPlans] = useState<Record<InvestmentPlan, PlanDetails>>({} as Record<InvestmentPlan, PlanDetails>);
+  
+  // Fetch investment plans
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await fetch('/api/investment-plans');
+        if (response.ok) {
+          const data = await response.json();
+          setPlans(data.plans);
+        }
+      } catch (error) {
+        console.error('Failed to fetch investment plans:', error);
+      }
+    };
+    
+    fetchPlans();
+  }, []);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -63,11 +94,12 @@ export default function RegisterPage() {
     return newErrors;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const isCheckbox = type === 'checkbox';
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
@@ -83,7 +115,7 @@ export default function RegisterPage() {
       
       try {
         const name = `${formData.firstName} ${formData.lastName}`;
-        const result = await signUp(formData.email, formData.password, name) as { success: boolean, error?: string };
+        const result = await signUp(formData.email, formData.password, name, formData.investmentPlan) as { success: boolean, error?: string };
         
         if (!result.success) {
           throw new Error(result.error || 'Registration failed');
@@ -255,6 +287,34 @@ export default function RegisterPage() {
                 </div>
                 {errors.confirmPassword && (
                   <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>
+                )}
+              </div>
+              
+              <div>
+                <label htmlFor="investmentPlan" className="block text-sm font-medium text-gray-300 mb-1">
+                  Select Investment Plan
+                </label>
+                <select
+                  id="investmentPlan"
+                  name="investmentPlan"
+                  className="input w-full"
+                  value={formData.investmentPlan}
+                  onChange={handleChange}
+                >
+                  <option value="NONE">Select your investment plan</option>
+                  <option value="STARTER">STARTER - 15% ROI ($500 - $1,500)</option>
+                  <option value="PREMIER">PREMIER - 20% ROI ($1,500 - $3,000)</option>
+                  <option value="PREMIUM">PREMIUM - 25% ROI ($3,100 - $6,000)</option>
+                  <option value="SILVER">SILVER - 30% ROI ($5,000 - $15,000)</option>
+                  <option value="GOLD">GOLD - 35% ROI ($10,000 - $30,000)</option>
+                  <option value="PLATINUM">PLATINUM - 40% ROI ($40,000 - $100,000)</option>
+                </select>
+                {formData.investmentPlan !== 'NONE' && (
+                  <div className="mt-2 p-3 bg-dark-300/80 border border-dark-100 rounded-lg">
+                    <h4 className="font-medium text-primary-500">{formData.investmentPlan}</h4>
+                    <p className="text-xs text-gray-400 mt-1">ROI: {plans[formData.investmentPlan]?.roi || ''}%</p>
+                    <p className="text-xs text-gray-400">Investment Range: {plans[formData.investmentPlan]?.minDeposit || ''} - {plans[formData.investmentPlan]?.maxDeposit || ''}</p>
+                  </div>
                 )}
               </div>
               

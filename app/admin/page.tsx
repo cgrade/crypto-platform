@@ -2,13 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import cryptoApi, { Crypto, ApiError } from '@/lib/api/crypto';
+import cryptoApi from '@/lib/api/crypto';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-
-// Using the Crypto type from our API client
 
 interface User {
   id: string;
@@ -35,196 +32,17 @@ interface Transaction {
 }
 
 export default function AdminDashboard() {
-  // Use state to track client-side rendering
   const [isClient, setIsClient] = useState(false);
   
-  // Set isClient to true once component mounts
   useEffect(() => {
     setIsClient(true);
   }, []);
-  const { data: session } = useSession();
+
   const [users, setUsers] = useState<User[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [apiResponse, setApiResponse] = useState<{ success?: boolean; message?: string }>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cryptoPrices, setCryptoPrices] = useState<{
-    BTC: number;
-  }>({ BTC: 0 });
-  const [isLoadingPrices, setIsLoadingPrices] = useState(true);
-  
-  // Define the SWR fetcher function using our type-safe API client
-  const fetcher = async (url: string) => {
-    try {
-      // Use our type-safe API client
-      return await cryptoApi.getPrices(['bitcoin']);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        console.error(`API Error (${error.status}): ${error.message}`);
-      }
-      throw error;
-    }
-  };
-  
-  // Use SWR for real-time crypto prices
-  const { data: cryptoData, error: cryptoError } = useSWR(
-    isClient ? // Only fetch on client-side
-      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin" : null,
-    fetcher,
-    {
-      refreshInterval: 30000, // Refresh every 30 seconds
-      revalidateOnFocus: true,
-      dedupingInterval: 10000, // Dedupe requests within 10 seconds
-      errorRetryCount: 3,
-      onSuccess: (data) => {
-        const btcData = data.find(crypto => crypto.id === 'bitcoin');
-        
-        if (btcData) {
-          setCryptoPrices({
-            BTC: btcData.current_price
-          });
-        }
-        setIsLoadingPrices(false);
-      }
-    }
-  );
-  
-  // Handle loading and error states
-  useEffect(() => {
-    if (!isClient) return; // Only run on client-side
-    
-    if (cryptoError) {
-      console.error("Error fetching crypto prices:", cryptoError);
-      // Set fallback prices in case of API failure
-      setCryptoPrices({
-        BTC: 45000
-      });
-      setIsLoadingPrices(false);
-    }
-  }, [cryptoError, isClient]);
-
-  // Fetch users and pending transactions
-  useEffect(() => {
-    if (!isClient) return; // Only run on client
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch users
-        const usersResponse = await fetch('/api/admin/users');
-        const usersData = await usersResponse.json();
-        
-        if (usersResponse.ok) {
-          setUsers(usersData.users);
-        }
-        
-        // Fetch pending transactions
-        const transactionsResponse = await fetch('/api/admin/transactions?status=PENDING');
-        const transactionsData = await transactionsResponse.json();
-        
-        if (transactionsResponse.ok) {
-          setTransactions(transactionsData.transactions);
-        }
-        
-      } catch (error) {
-        console.error('Error fetching admin data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, []);
-  
-  // Analytics data calculation from real user data
-  const analytics = {
-    totalUsers: users.length,
-    activeUsers: users.filter(user => user.status === 'active').length,
-    totalPortfolioValue: users.reduce((total, user) => total + user.portfolioValue, 0),
-    averagePortfolioValue: users.length > 0 
-      ? users.reduce((total, user) => total + user.portfolioValue, 0) / users.length 
-      : 0
-  };
-
-  const handleTransactionClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setIsTransactionModalOpen(true);
-    setApiResponse({});
-  };
-
-  const handleTransactionAction = async (action: 'approve' | 'reject') => {
-    if (!selectedTransaction) return;
-    
-    setIsSubmitting(true);
-    setApiResponse({});
-    
-    try {
-      // In a real app, uncomment this code
-      /*
-      const response = await fetch(`/api/admin/transactions/${selectedTransaction.id}/${action}`, {
-        method: 'POST',
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        setApiResponse({ 
-          success: true, 
-          message: `Transaction ${action === 'approve' ? 'approved' : 'rejected'} successfully!` 
-        });
-        
-        // Update transactions list
-        setTransactions(transactions.filter(t => t.id !== selectedTransaction.id));
-        
-        // Close modal after 1.5 seconds
-        setTimeout(() => {
-          setIsTransactionModalOpen(false);
-          setSelectedTransaction(null);
-        }, 1500);
-      } else {
-        throw new Error(data.error || `Failed to ${action} transaction`);
-      }
-      */
-      
-      // Simulate successful API response
-      setTimeout(() => {
-        setApiResponse({ 
-          success: true, 
-          message: `Transaction ${action === 'approve' ? 'approved' : 'rejected'} successfully!` 
-        });
-        
-        // Update transactions list
-        setTransactions(transactions.filter(t => t.id !== selectedTransaction.id));
-        
-        // Close modal after 1.5 seconds
-        setTimeout(() => {
-          setIsTransactionModalOpen(false);
-          setSelectedTransaction(null);
-        }, 1500);
-      }, 800);
-      
-    } catch (error: any) {
-      setApiResponse({ success: false, message: error.message });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Sample users data
-  const sampleUsers: User[] = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', createdAt: '2023-05-15', portfolioValue: 18420.69, status: 'active' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', createdAt: '2023-06-22', portfolioValue: 7532.48, status: 'active' },
-    { id: '3', name: 'Robert Johnson', email: 'robert@example.com', createdAt: '2023-08-10', portfolioValue: 42697.12, status: 'active' },
-    { id: '4', name: 'Emily Davis', email: 'emily@example.com', createdAt: '2023-09-05', portfolioValue: 3250.00, status: 'pending' },
-    { id: '5', name: 'Michael Brown', email: 'michael@example.com', createdAt: '2023-10-18', portfolioValue: 12500.75, status: 'active' },
-  ];
-
-  // Sample transactions data
-  const sampleTransactions: Transaction[] = [
+  const [transactions, setTransactions] = useState<Transaction[]>([
     { 
       id: '1', 
-      amount: 1.25, 
+      amount: 2.5, 
       type: 'DEPOSIT', 
       status: 'PENDING', 
       cryptoType: 'BTC', 
@@ -263,8 +81,133 @@ export default function AdminDashboard() {
         name: 'Robert Johnson',
         email: 'robert@example.com'
       }
-    },
-  ];
+    }
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [apiResponse, setApiResponse] = useState<{ success?: boolean; message?: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cryptoPrices, setCryptoPrices] = useState<{
+    BTC: number;
+  }>({ BTC: 0 });
+  const [isLoadingPrices, setIsLoadingPrices] = useState(true);
+  
+  const fetcher = async () => {
+    try {
+      return await cryptoApi.getPrices(['bitcoin']);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`API Error: ${error.message}`);
+      }
+      throw error;
+    }
+  };
+  
+  const { data: cryptoData, error: cryptoError } = useSWR(
+    isClient ? "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin" : null,
+    fetcher,
+    {
+      refreshInterval: 30000, 
+      revalidateOnFocus: true,
+      dedupingInterval: 10000, 
+      errorRetryCount: 3,
+      onSuccess: (data) => {
+        const btcData = data.find(crypto => crypto.id === 'bitcoin');
+        
+        if (btcData) {
+          setCryptoPrices({
+            BTC: btcData.current_price
+          });
+        }
+        setIsLoadingPrices(false);
+      }
+    }
+  );
+  
+  useEffect(() => {
+    if (!isClient) return; 
+    
+    if (cryptoError) {
+      console.error("Error fetching crypto prices:", cryptoError);
+      setCryptoPrices({
+        BTC: 45000
+      });
+      setIsLoadingPrices(false);
+    }
+  }, [cryptoError, isClient]);
+
+  useEffect(() => {
+    if (!isClient) return; 
+    const fetchData = async (): Promise<void> => {
+      setIsLoading(true);
+      try {
+        const usersResponse = await fetch('/api/admin/users');
+        
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          setUsers(usersData.users);
+        }
+        
+        const transactionsResponse = await fetch('/api/admin/transactions?status=PENDING');
+        
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json();
+          setTransactions(transactionsData.transactions);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [isClient]);
+
+  const analytics = {
+    totalUsers: users.length,
+    activeUsers: users.filter(user => user.status === 'active').length,
+    totalPortfolioValue: users.reduce((total, user) => total + user.portfolioValue, 0),
+    averagePortfolioValue: users.length > 0 
+      ? users.reduce((total, user) => total + user.portfolioValue, 0) / users.length 
+      : 0
+  };
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsTransactionModalOpen(true);
+    setApiResponse({});
+  };
+
+  const handleTransactionAction = async (action: 'approve' | 'reject') => {
+    if (!selectedTransaction) return;
+    
+    setIsSubmitting(true);
+    setApiResponse({});
+    
+    try {
+      setTimeout(() => {
+        setApiResponse({ 
+          success: true, 
+          message: `Transaction ${action === 'approve' ? 'approved' : 'rejected'} successfully!` 
+        });
+        
+        setTransactions(transactions.filter(t => t.id !== selectedTransaction.id));
+        
+        setTimeout(() => {
+          setIsTransactionModalOpen(false);
+          setSelectedTransaction(null);
+        }, 1500);
+      }, 800);
+      
+    } catch (error: unknown) {
+      setApiResponse({ success: false, message: String(error) });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   // Fallback analytics data (when loading)
   const fallbackAnalytics = {
