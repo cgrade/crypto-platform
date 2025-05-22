@@ -467,7 +467,13 @@ export default function ProfilePage() {
       <div className="flex justify-end mt-8">
         <Button
           className="bg-red-700 hover:bg-red-800 text-white"
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => {
+            // Use absolute URL in production, relative URL in development
+            const callbackUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+              ? 'https://cryptpro.online/login' 
+              : '/login';
+            signOut({ callbackUrl });
+          }}
         >
           Logout
         </Button>
